@@ -566,7 +566,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
 
                         {/* 修复破损与失效图标 */}
                         <div className={styles.layoutRow}>
-                            <span className={styles.layoutLabel}>{t.settings.fixIcons}</span>
                             <button 
                                 className={`${styles.layoutToggleOption} ${styles.fixButton}`}
                                 onClick={handleFixIcons}
