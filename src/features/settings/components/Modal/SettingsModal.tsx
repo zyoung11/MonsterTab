@@ -15,6 +15,12 @@ import asteriskIcon from '@/assets/icons/asterisk.svg';
 import circleIcon from '@/assets/icons/texture background/circle-preview.svg';
 import crossIcon from '@/assets/icons/texture background/cross-preview.svg';
 import { WallpaperGallery } from '@/features/theme/components/WallpaperGallery/WallpaperGallery';
+import { useSpaces } from '@/features/spaces/context/SpacesContext';
+import { fetchAndProcessIcon } from '@/features/dock/utils/iconFetcher';
+import { FAVICON_PREFIX, getDomainFromRef } from '@/features/dock/utils/iconCache';
+import { normalizeUrl } from '@/shared/utils/url';
+import { db } from '@/shared/utils/db';
+import { DockItem } from '@/shared/types';
 
 
 interface SettingsModalProps {
@@ -139,11 +145,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
     } = useTheme();
 
     const { language, setLanguage, t } = useLanguage();
+    const { currentSpace, updateCurrentSpaceApps } = useSpaces();
 
     const systemTheme = useSystemTheme();
     const [isVisible, setIsVisible] = useState(isOpen);
     const modalRef = useRef<HTMLDivElement>(null);
     const isClosingRef = useRef(false);
+    const [isFixingIcons, setIsFixingIcons] = useState(false);
 
     // 确定我们是处于“默认”模式还是“浅色/深色”模式的逻辑
     const isDefaultTheme = theme === 'default' && !followSystem;
@@ -213,6 +221,57 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
         setTexture(selectedTexture);
     }, [setTexture]);
 
+    const handleFixIcons = async () => {
+        if (isFixingIcons) return;
+        setIsFixingIcons(true);
+
+        try {
+            const processItems = async (items: DockItem[]): Promise<DockItem[]> => {
+                const newItems = [...items];
+                for (let i = 0; i < newItems.length; i++) {
+                    const item = newItems[i];
+                    if (item.type === 'folder' && item.items) {
+                        newItems[i] = { ...item, items: await processItems(item.items) };
+                    } else if (item.url) {
+                        const normalized = normalizeUrl(item.url);
+                        
+                        // 判断是否需要修复：
+                        // 1. 图标为空
+                        // 2. 是生成的文字图标 (data:image/svg)
+                        // 3. 是 favicon: 引用，但在 IndexedDB 中标记为 fallback
+                        let needsFix = !item.icon || item.icon.startsWith('data:image/svg');
+                        
+                        if (!needsFix && item.icon && item.icon.startsWith(FAVICON_PREFIX)) {
+                            const domain = getDomainFromRef(item.icon);
+                            try {
+                                const dbItem = await db.getFavicon(domain);
+                                if (dbItem?.isFallback) {
+                                    needsFix = true;
+                                }
+                            } catch { }
+                        }
+
+                        if (needsFix) {
+                            try {
+                                // 强制重新从网络获取图标
+                                const { url: processedIcon, isFallback, iconSmall } = await fetchAndProcessIcon(normalized, 0, true);
+                                if (!isFallback) {
+                                    newItems[i] = { ...item, icon: processedIcon, iconSmall: !!iconSmall };
+                                }
+                            } catch { }
+                        }
+                    }
+                }
+                return newItems;
+            };
+
+            const updatedApps = await processItems(currentSpace.apps);
+            updateCurrentSpaceApps(updatedApps);
+        } finally {
+            setIsFixingIcons(false);
+        }
+    };
+
     if (!isVisible) return null;
 
     const modalStyle: React.CSSProperties = {
@@ -253,8 +312,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
 
     return (
         <>
-            <div className={styles.backdrop} onClick={handleClose} />
-            <div ref={modalRef} className={styles.modal} style={modalStyle}>
+            <div className={styles.backdrop} onClick={handleClose} onDoubleClick={(e) => e.stopPropagation()} />
+            <div ref={modalRef} className={styles.modal} style={modalStyle} onDoubleClick={(e) => e.stopPropagation()}>
                 <div className={styles.innerContainer}>
                     {/* 主题部分 */}
                     <div className={styles.iconContainer}>
@@ -505,7 +564,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                             <PermissionToggle />
                         </div>
 
-
+                        {/* 修复破损与失效图标 */}
+                        <div className={styles.layoutRow}>
+                            <span className={styles.layoutLabel}>{t.settings.fixIcons}</span>
+                            <button 
+                                className={`${styles.layoutToggleOption} ${styles.fixButton}`}
+                                onClick={handleFixIcons}
+                                disabled={isFixingIcons}
+                            >
+                                {isFixingIcons ? '...' : t.settings.fixIcons}
+                            </button>
+                        </div>
                     </div>
 
 

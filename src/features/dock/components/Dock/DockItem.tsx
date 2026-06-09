@@ -1,8 +1,58 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { DockItem as DockItemType } from '@/shared/types';
 import { Tooltip } from '@/shared/components/Tooltip/Tooltip';
+import { isFaviconRef, getDomainFromRef, resolveIconUrl, getCachedIconUrlSync } from '@/features/dock/utils/iconCache';
 import styles from './DockItem.module.css';
 import editIcon from '@/assets/icons/edit.svg';
+
+// 占位符 SVG（半透明圆角矩形）
+const PLACEHOLDER_ICON = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg==';
+
+/**
+ * 解析图标：如果是 favicon: 引用则异步加载，否则直接使用
+ * 优化：如果图标已在内存缓存中，同步返回，避免占位符闪烁
+ */
+function useResolvedIcon(icon: string | undefined): string {
+  const [resolved, setResolved] = useState<string>(() => {
+    if (!icon) return PLACEHOLDER_ICON;
+    if (isFaviconRef(icon)) {
+      const domain = getDomainFromRef(icon);
+      const cached = getCachedIconUrlSync(domain);
+      return cached || PLACEHOLDER_ICON;
+    }
+    return icon; // data URL 或其他直接可用的 URL
+  });
+
+  useEffect(() => {
+    if (!icon) {
+      setResolved(PLACEHOLDER_ICON);
+      return;
+    }
+    if (!isFaviconRef(icon)) {
+      setResolved(icon);
+      return;
+    }
+
+    // 再次检查缓存（可能在上次渲染后已缓存）
+    const domain = getDomainFromRef(icon);
+    const cached = getCachedIconUrlSync(domain);
+    if (cached) {
+      setResolved(cached);
+      return;
+    }
+
+    let cancelled = false;
+    resolveIconUrl(domain).then(url => {
+      if (!cancelled) {
+        setResolved(url || PLACEHOLDER_ICON);
+      }
+    });
+
+    return () => { cancelled = true; };
+  }, [icon]);
+
+  return resolved;
+}
 
 interface DockItemProps {
   item: DockItemType;
@@ -13,11 +63,9 @@ interface DockItemProps {
   isDragging?: boolean;
   staggerIndex?: number;
   isDropTarget?: boolean;
-  /** 是否为合并目标（触发脉冲动画） */
   isMergeTarget?: boolean;
   onLongPress?: () => void;
   onMouseDown?: (e: React.MouseEvent) => void;
-  /** 右键菜单回调，传递位置和元素rect */
   onContextMenu?: (x: number, y: number, rect: DOMRect) => void;
 }
 
@@ -35,12 +83,13 @@ const DockItemComponent: React.FC<DockItemProps> = ({
   onMouseDown,
   onContextMenu,
 }) => {
-  // ... (现有状态)
   const [isHovered, setIsHovered] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const [pressTimer, setPressTimer] = useState<number | null>(null);
-
   const isLongPressTriggered = useRef(false);
+
+  // 解析图标 URL（处理 favicon: 引用的异步加载）
+  const resolvedIcon = useResolvedIcon(item.icon);
 
   const handleClick = () => {
     if (isLongPressTriggered.current) {
@@ -50,7 +99,6 @@ const DockItemComponent: React.FC<DockItemProps> = ({
 
     const rect = rootRef.current?.getBoundingClientRect();
 
-    // 在编辑模式下，点击文件夹应打开文件夹视图，而不是编辑模态框
     if (isEditMode && item.type !== 'folder') {
       onEdit(rect);
     } else {
@@ -68,9 +116,7 @@ const DockItemComponent: React.FC<DockItemProps> = ({
 
   const handleMouseEnter = () => {
     setIsHovered(true);
-
-    // 启动提示文本定时器
-    if (!isDragging && !isEditMode) { // 拖拽中或编辑模式下不显示提示文本
+    if (!isDragging && !isEditMode) {
       tooltipTimer.current = window.setTimeout(() => {
         setShowTooltip(true);
       }, 1000);
@@ -83,8 +129,6 @@ const DockItemComponent: React.FC<DockItemProps> = ({
       clearTimeout(pressTimer);
       setPressTimer(null);
     }
-
-    // 清除提示文本定时器并隐藏提示文本
     if (tooltipTimer.current) {
       clearTimeout(tooltipTimer.current);
       tooltipTimer.current = null;
@@ -93,7 +137,6 @@ const DockItemComponent: React.FC<DockItemProps> = ({
   };
 
   const handleMouseDownInternal = (e: React.MouseEvent) => {
-    // 点击/鼠标按下时隐藏提示文本
     if (tooltipTimer.current) {
       clearTimeout(tooltipTimer.current);
       tooltipTimer.current = null;
@@ -111,7 +154,6 @@ const DockItemComponent: React.FC<DockItemProps> = ({
     }
   };
 
-  // 处理右键上下文菜单
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -121,7 +163,6 @@ const DockItemComponent: React.FC<DockItemProps> = ({
     }
   };
 
-  // 根据项目 ID 生成稳定的随机延迟，以使抖动动画去同步
   const animationDelay = React.useMemo(() => {
     let hash = 0;
     for (let i = 0; i < item.id.length; i++) {
@@ -149,29 +190,18 @@ const DockItemComponent: React.FC<DockItemProps> = ({
       }}
     >
       <div className={`${styles.iconContainer} ${item.type !== 'folder' ? styles.nonFolderBg : ''} ${isHovered && !isEditMode ? styles.hovered : ''}`}>
-        {/* 编辑模式悬停叠加层 - 始终渲染以便进行淡入淡出动画 */}
         {isEditMode && item.type !== 'folder' && (
           <div className={`${styles.editOverlay} ${isHovered ? styles.editOverlayVisible : ''}`}>
             <img src={editIcon} alt="edit" className={styles.editIcon} />
           </div>
         )}
         {item.type === 'folder' ? (
-          <div className={styles.folderIcon}>
-            {item.items && item.items.slice(0, 4).map((subItem) => (
-              <div key={subItem.id} className={styles.folderIconTile}>
-                {subItem.icon ? (
-                  <img src={subItem.icon} alt={subItem.name} />
-                ) : (
-                  <div className={styles.fallbackIcon} />
-                )}
-              </div>
-            ))}
-          </div>
+          <FolderIconGrid items={item.items} />
         ) : (
           <img
-            src={item.icon || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTYiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4yKSIvPjwvc3ZnPg=='}
+            src={resolvedIcon}
             alt={item.name}
-            className={styles.icon}
+            className={`${styles.icon} ${item.iconSmall ? styles.iconSmall : ''}`}
           />
         )}
       </div>
@@ -191,13 +221,41 @@ const DockItemComponent: React.FC<DockItemProps> = ({
   );
 };
 
-// 为 React.memo 自定义比较函数
+/**
+ * 文件夹图标网格：子项图标也需要异步解析
+ */
+const FolderIconGrid: React.FC<{ items?: DockItemType[] }> = ({ items }) => {
+  return (
+    <div className={styles.folderIcon}>
+      {items && items.slice(0, 4).map((subItem) => (
+        <FolderIconTile key={subItem.id} subItem={subItem} />
+      ))}
+    </div>
+  );
+};
+
+const FolderIconTile: React.FC<{ subItem: DockItemType }> = ({ subItem }) => {
+  const resolvedIcon = useResolvedIcon(subItem.icon);
+  const isPlaceholder = resolvedIcon === PLACEHOLDER_ICON;
+
+  return (
+    <div className={styles.folderIconTile}>
+      {!isPlaceholder ? (
+        <img src={resolvedIcon} alt={subItem.name} />
+      ) : (
+        <div className={styles.fallbackIcon} />
+      )}
+    </div>
+  );
+};
+
+// React.memo 自定义比较函数
 const arePropsEqual = (prev: DockItemProps, next: DockItemProps) => {
-  // 基础属性比较
   if (
     prev.item.id !== next.item.id ||
     prev.item.name !== next.item.name ||
     prev.item.icon !== next.item.icon ||
+    prev.item.iconSmall !== next.item.iconSmall ||
     prev.isEditMode !== next.isEditMode ||
     prev.isDragging !== next.isDragging ||
     prev.isDropTarget !== next.isDropTarget ||
@@ -207,10 +265,6 @@ const arePropsEqual = (prev: DockItemProps, next: DockItemProps) => {
     return false;
   }
 
-  // ============================================================================
-  // 性能优化: 改进文件夹子项比较逻辑
-  // 不仅检查长度，还检查子项 ID 和图标以确保文件夹图标正确更新
-  // ============================================================================
   const prevItems = prev.item.items;
   const nextItems = next.item.items;
 
@@ -218,7 +272,6 @@ const arePropsEqual = (prev: DockItemProps, next: DockItemProps) => {
     return false;
   }
 
-  // 检查前4个子项的 ID 和图标 (文件夹图标只显示前4个)
   if (prevItems && nextItems) {
     const checkCount = Math.min(4, prevItems.length);
     for (let i = 0; i < checkCount; i++) {
@@ -230,8 +283,6 @@ const arePropsEqual = (prev: DockItemProps, next: DockItemProps) => {
   }
 
   return true;
-  // 忽略函数属性 (onClick, onEdit 等)，因为它们在父组件的每次渲染中都会重新创建
-  // 但底层逻辑依赖于我们上面检查过的相同项目数据。
 };
 
 export const DockItem = React.memo(DockItemComponent, arePropsEqual);

@@ -16,6 +16,7 @@ const FolderView = lazy(() => import('./features/dock/components/FolderView/Fold
 const AddEditModal = lazy(() => import('./features/dock/components/Modal/AddEditModal').then(m => ({ default: m.AddEditModal })));
 const SearchEngineModal = lazy(() => import('./features/search/components/Modal/SearchEngineModal').then(m => ({ default: m.SearchEngineModal })));
 const SettingsModal = lazy(() => import('./features/settings/components/Modal/SettingsModal').then(m => ({ default: m.SettingsModal })));
+const BatchImportView = lazy(() => import('./features/dock/components/BatchImport/BatchImportView').then(m => ({ default: m.BatchImportView })));
 
 function App() {
   // ============================================================================
@@ -62,6 +63,7 @@ function App() {
   const [editingItem, setEditingItem] = useState<DockItem | null>(null);
   const [showEditor, setShowEditor] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [isBatchImportOpen, setIsBatchImportOpen] = useState(false);
 
   // 跟踪拖拽来源，用于区分内部拖拽和外部拖拽
   const [draggingFromFolder, setDraggingFromFolder] = useState(false);
@@ -75,13 +77,15 @@ function App() {
     addEdit: false,
     searchEngine: false,
     settings: false,
+    batchImport: false,
   });
 
   useEffect(() => {
     if (isAddEditModalOpen) mountedModals.current.addEdit = true;
     if (isSearchEngineModalOpen) mountedModals.current.searchEngine = true;
     if (isSettingsModalOpen) mountedModals.current.settings = true;
-  }, [isAddEditModalOpen, isSearchEngineModalOpen, isSettingsModalOpen]);
+    if (isBatchImportOpen) mountedModals.current.batchImport = true;
+  }, [isAddEditModalOpen, isSearchEngineModalOpen, isSettingsModalOpen, isBatchImportOpen]);
 
   // ============================================================================
   // 性能优化: 使用 RAF 节流 + 状态变化检测，减少 mousemove 期间的重渲染
@@ -297,6 +301,7 @@ function App() {
             onSave={handleModalSave}
             anchorRect={addIconAnchor}
             hideHeader
+            onBatchImport={() => setIsBatchImportOpen(true)}
           />
         </Suspense>
       )}
@@ -323,6 +328,14 @@ function App() {
               x: settingsAnchor.rect.left,
               y: settingsAnchor.source === 'button' ? settingsAnchor.rect.top + 60 : settingsAnchor.rect.top
             } : { x: 0, y: 0 }}
+          />
+        </Suspense>
+      )}
+      {(isBatchImportOpen || mountedModals.current.batchImport) && (
+        <Suspense fallback={null}>
+          <BatchImportView
+            isOpen={isBatchImportOpen}
+            onClose={() => setIsBatchImportOpen(false)}
           />
         </Suspense>
       )}

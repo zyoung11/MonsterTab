@@ -1,64 +1,139 @@
 /**
- * 图标 LRU 缓存
- * 性能优化: 限制缓存大小，自动淘汰最久未使用的条目防止内存泄漏
+ * 图标解析服务
+ * 管理 favicon 的 objectURL 缓存，从 IndexedDB 加载 Blob 并转换为 objectURL
+ * 同一会话内复用 objectURL，避免重复读取 IndexedDB
  */
 
-type IconCacheValue = { url: string; isFallback: boolean };
+import { db } from '@/shared/utils/db';
+
+// favicon 引用 ID 前缀
+export const FAVICON_PREFIX = 'favicon:';
 
 // ============================================================================
-// LRU 缓存实现: 使用 Map 的有序特性实现 LRU
-// Map 会按插入顺序保持 key，删除并重新插入可将条目移到末尾
+// objectURL 内存缓存: domain → objectURL
+// 同一标签页会话内复用，不需要 LRU 淘汰（objectURL 占用极少内存）
 // ============================================================================
+const objectURLCache = new Map<string, string>();
 
-const MAX_CACHE_SIZE = 100; // 最大缓存条目数
-const iconCache = new Map<string, IconCacheValue>();
+// 进行中的加载请求去重
+const pendingLoads = new Map<string, Promise<string>>();
 
 /**
- * 获取缓存的图标
- * 命中时将条目移到末尾（最近使用）
+ * 判断 icon 字符串是否为 favicon 引用 ID
  */
-export const getCachedIcon = (domain: string): IconCacheValue | undefined => {
-    const cached = iconCache.get(domain);
-    if (cached) {
-        // LRU: 移动到末尾表示最近使用
-        iconCache.delete(domain);
-        iconCache.set(domain, cached);
-    }
+export const isFaviconRef = (icon: string): boolean => {
+  return icon.startsWith(FAVICON_PREFIX);
+};
+
+/**
+ * 从 favicon 引用 ID 中提取 domain
+ */
+export const getDomainFromRef = (icon: string): string => {
+  return icon.slice(FAVICON_PREFIX.length);
+};
+
+/**
+ * 生成 favicon 引用 ID
+ */
+export const makeFaviconRef = (domain: string): string => {
+  return `${FAVICON_PREFIX}${domain}`;
+};
+
+/**
+ * 同步获取已缓存的图标 URL（如果已加载过）
+ * @returns objectURL 或 undefined（未缓存）
+ */
+export const getCachedIconUrlSync = (domain: string): string | undefined => {
+  return objectURLCache.get(domain);
+};
+
+/**
+ * 解析 favicon 引用 ID 为可用的图片 URL
+ * - 如果已缓存 objectURL，直接返回（同步的 Promise）
+ * - 否则从 IndexedDB 加载 Blob，生成 objectURL 并缓存
+ * - 请求去重：同一 domain 的并发请求复用同一个 Promise
+ * @returns objectURL 或空字符串（加载失败时）
+ */
+export const resolveIconUrl = async (domain: string): Promise<string> => {
+  // 1. 检查内存缓存
+  const cached = objectURLCache.get(domain);
+  if (cached) {
     return cached;
+  }
+
+  // 2. 请求去重
+  const pending = pendingLoads.get(domain);
+  if (pending) {
+    return pending;
+  }
+
+  // 3. 从 IndexedDB 加载
+  const loadPromise = (async () => {
+    try {
+      const item = await db.getFavicon(domain);
+      if (item && item.data) {
+        const url = URL.createObjectURL(item.data);
+        objectURLCache.set(domain, url);
+        return url;
+      }
+      return '';
+    } catch {
+      return '';
+    } finally {
+      pendingLoads.delete(domain);
+    }
+  })();
+
+  pendingLoads.set(domain, loadPromise);
+  return loadPromise;
 };
 
 /**
- * 设置图标缓存
- * 超出容量时淘汰最久未使用的条目（Map 的第一个条目）
+ * 批量预加载多个域名的图标（用于初始化时优化）
  */
-export const setCachedIcon = (domain: string, icon: IconCacheValue): void => {
-    // 如果已存在，先删除以便重新插入到末尾
-    if (iconCache.has(domain)) {
-        iconCache.delete(domain);
-    }
-
-    // 检查容量，淘汰最旧条目
-    if (iconCache.size >= MAX_CACHE_SIZE) {
-        // Map.keys().next() 返回第一个（最旧的）key
-        const oldestKey = iconCache.keys().next().value;
-        if (oldestKey) {
-            iconCache.delete(oldestKey);
-        }
-    }
-
-    iconCache.set(domain, icon);
+export const prefetchIcons = async (domains: string[]): Promise<void> => {
+  const uniqueDomains = [...new Set(domains)];
+  await Promise.allSettled(uniqueDomains.map(d => resolveIconUrl(d)));
 };
 
 /**
- * 获取当前缓存大小（用于调试）
+ * 获取 favicon 的元信息（isFallback, iconSmall）
+ * 用于需要判断图标状态的场景
+ */
+export const getFaviconMeta = async (domain: string): Promise<{ isFallback: boolean; iconSmall?: boolean } | null> => {
+  try {
+    const item = await db.getFavicon(domain);
+    if (item) {
+      return { isFallback: item.isFallback, iconSmall: item.iconSmall };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+/**
+ * 清除指定 domain 的缓存（用于刷新图标时）
+ */
+export const invalidateIconCache = (domain: string): void => {
+  const url = objectURLCache.get(domain);
+  if (url) {
+    URL.revokeObjectURL(url);
+    objectURLCache.delete(domain);
+  }
+};
+
+/**
+ * 获取缓存大小（调试用）
  */
 export const getCacheSize = (): number => {
-    return iconCache.size;
+  return objectURLCache.size;
 };
 
 /**
- * 清空缓存（用于调试/重置）
+ * 清空所有缓存（调试用）
  */
 export const clearIconCache = (): void => {
-    iconCache.clear();
+  objectURLCache.forEach(url => URL.revokeObjectURL(url));
+  objectURLCache.clear();
 };

@@ -23,6 +23,7 @@ interface Translations {
         tabOpeningBehavior: string;
         openInNewTab: string;
         openInCurrentTab: string;
+        fixIcons: string;
     };
     search: {
         searchBy: string;
@@ -59,6 +60,7 @@ interface Translations {
         cancel: string;
         save: string;
         add: string;
+        batchImport: string;
     };
     space: {
         title: string;
@@ -84,6 +86,24 @@ interface Translations {
         emptyRecycleBin: string;
         emptyRecycleBinHint: string;
         recycleBinLimitHint: string;
+    };
+    batchImport: {
+        title: string;
+        fromBookmarks: string;
+        fromBookmarksDesc: string;
+        aiGenerate: string;
+        aiStep1: string;
+        aiStep2: string;
+        aiStep3: string;
+        copyPrompt: string;
+        copied: string;
+        importJson: string;
+        addAll: string;
+        selected: string;
+        importSelected: string;
+        noBookmarks: string;
+        bookmarkPermissionDenied: string;
+        bookmarkApiUnavailable: string;
     };
     dock: {
         emptyHint: string;
@@ -122,6 +142,7 @@ const translations: Record<Language, Translations> = {
             tabOpeningBehavior: 'Open Tabs In',
             openInNewTab: 'New',
             openInCurrentTab: 'Current',
+            fixIcons: 'Fix Broken/Missing Icons',
         },
         search: {
             searchBy: 'Search by',
@@ -158,6 +179,7 @@ const translations: Record<Language, Translations> = {
             cancel: 'Cancel',
             save: 'Save',
             add: 'Add',
+            batchImport: 'Batch Import',
         },
         space: {
             title: 'Space',
@@ -186,6 +208,24 @@ const translations: Record<Language, Translations> = {
         },
         dock: {
             emptyHint: 'Right-click or use top-right button to enter edit mode and add icons',
+        },
+        batchImport: {
+            title: 'Batch Import',
+            fromBookmarks: 'Import from Bookmarks',
+            fromBookmarksDesc: 'Select bookmarks from your browser to import',
+            aiGenerate: 'AI Generate Space',
+            aiStep1: 'Copy the prompt below',
+            aiStep2: 'Paste into any AI tool, add your website names',
+            aiStep3: 'Import the generated JSON file',
+            copyPrompt: 'Copy Prompt',
+            copied: 'Copied!',
+            importJson: 'Import JSON',
+            addAll: 'Add All',
+            selected: 'Selected',
+            importSelected: 'Import',
+            noBookmarks: 'No bookmarks found',
+            bookmarkPermissionDenied: 'Bookmark permission denied',
+            bookmarkApiUnavailable: 'Bookmark API not available',
         },
         textInput: {
             placeholder: 'Enter text...',
@@ -219,6 +259,7 @@ const translations: Record<Language, Translations> = {
             tabOpeningBehavior: '新标签页打开',
             openInNewTab: '开启',
             openInCurrentTab: '关闭',
+            fixIcons: '修复破损与失效图标',
         },
         search: {
             searchBy: '使用',
@@ -255,6 +296,7 @@ const translations: Record<Language, Translations> = {
             cancel: '取消',
             save: '保存',
             add: '添加',
+            batchImport: '批量导入',
         },
         space: {
             title: '空间',
@@ -283,6 +325,24 @@ const translations: Record<Language, Translations> = {
         },
         dock: {
             emptyHint: '右键进入编辑模式，或鼠标移动到页面右上角并点击编辑图标',
+        },
+        batchImport: {
+            title: '批量导入',
+            fromBookmarks: '从书签导入',
+            fromBookmarksDesc: '从浏览器书签中选择要导入的网站',
+            aiGenerate: 'AI 生成空间',
+            aiStep1: '复制下方提示词',
+            aiStep2: '粘贴到任意 AI 工具，输入你想添加的网站名称',
+            aiStep3: '将 AI 生成的 JSON 文件导入即可',
+            copyPrompt: '复制提示词',
+            copied: '已复制！',
+            importJson: '导入 JSON',
+            addAll: '全部添加',
+            selected: '已选择',
+            importSelected: '导入',
+            noBookmarks: '未找到书签',
+            bookmarkPermissionDenied: '书签权限被拒绝',
+            bookmarkApiUnavailable: '书签 API 不可用',
         },
         textInput: {
             placeholder: '输入文本...',

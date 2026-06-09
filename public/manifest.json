@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Eclipse Tab",
-    "version": "1.1.21",
+    "version": "1.2.1",
     "description": "个人化新标签页浏览器扩展",
     "browser_specific_settings": {
         "gecko": {
@@ -18,7 +18,11 @@
     "permissions": [
         "search"
     ],
+    "optional_permissions": [
+        "bookmarks"
+    ],
     "optional_host_permissions": [
+        "<all_urls>",
         "https://suggestqueries.google.com/*",
         "https://www.google.com/*",
         "https://suggestion.baidu.com/*"

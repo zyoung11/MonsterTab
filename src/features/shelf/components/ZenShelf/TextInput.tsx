@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { createPortal } from 'react-dom';
 import { scaleFadeIn, scaleFadeOut } from '@/shared/utils/animations';
 import { useThemeData } from '@/features/theme/context/ThemeContext';
@@ -59,7 +59,12 @@ interface TextInputProps {
     viewportScale: number;
 }
 
-export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', initialStyle, initialHasCheckbox = false, onSubmit, onCancel, viewportScale }) => {
+export interface TextInputHandle {
+    /** 立即保存当前编辑内容（不播放动画） */
+    saveNow: () => void;
+}
+
+export const TextInput = forwardRef<TextInputHandle, TextInputProps>(({ x, y, initialText = '', initialStyle, initialHasCheckbox = false, onSubmit, onCancel, viewportScale }, ref) => {
     const { t } = useLanguage();
     const { theme } = useThemeData();
     const inputRef = useRef<HTMLDivElement>(null);
@@ -75,6 +80,28 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
     );
     const [hasCheckbox, setHasCheckbox] = useState<boolean>(initialHasCheckbox);
     const [isExiting, setIsExiting] = useState(false);
+
+    // 用 ref 保存最新的编辑状态，避免闭包捕获过时值
+    const latestStateRef = useRef({ textColor, fontSize, hasCheckbox });
+    latestStateRef.current = { textColor, fontSize, hasCheckbox };
+
+    // 标记是否已经提交过（避免重复提交）
+    const hasSubmittedRef = useRef(false);
+
+    // 暴露 saveNow 方法，供父组件在切换编辑时调用
+    useImperativeHandle(ref, () => ({
+        saveNow: () => {
+            if (hasSubmittedRef.current) return;
+            hasSubmittedRef.current = true;
+            const text = inputRef.current?.innerText?.trim() || '';
+            if (text) {
+                const { textColor: c, fontSize: f, hasCheckbox: cb } = latestStateRef.current;
+                onSubmit(text, { color: c, textAlign: 'left', fontSize: f }, cb);
+            } else {
+                onCancel();
+            }
+        }
+    }));
 
     // 持久化字体大小到 localStorage
     useEffect(() => {
@@ -132,7 +159,7 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
         }
     }, [isExiting]);
 
-    // 点击外部关闭（仅当点击空白背景时）
+    // 点击外部关闭 - 立即保存，不等出场动画
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (isExiting) return;
@@ -141,13 +168,26 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
             if (inputRef.current?.contains(target) || toolbarRef.current?.contains(target)) {
                 return;
             }
-            // 如果有内容则提交，否则取消
+            // 从 ref 读取最新状态，避免闭包过时值
+            const { textColor: currentColor, fontSize: currentSize, hasCheckbox: currentCheckbox } = latestStateRef.current;
+            // 立即提交/取消，不等动画完成
+            setIsExiting(true);
             const text = inputRef.current?.innerText?.trim() || '';
             if (text) {
-                // 如果提交内容，则不播放输入框出场动画
-                triggerExit(() => onSubmit(text, { color: textColor, textAlign, fontSize }, hasCheckbox), false);
+                hasSubmittedRef.current = true;
+                if (toolbarRef.current) {
+                    scaleFadeOut(toolbarRef.current, 150);
+                }
+                onSubmit(text, { color: currentColor, textAlign, fontSize: currentSize }, currentCheckbox);
             } else {
-                triggerExit(onCancel);
+                hasSubmittedRef.current = true;
+                if (inputWrapperRef.current) {
+                    scaleFadeOut(inputWrapperRef.current, 150);
+                }
+                if (toolbarRef.current) {
+                    scaleFadeOut(toolbarRef.current, 150);
+                }
+                onCancel();
             }
         };
         const timer = setTimeout(() => {
@@ -157,7 +197,7 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
             clearTimeout(timer);
             document.removeEventListener('mousedown', handleClickOutside);
         };
-    }, [textColor, fontSize, onSubmit, onCancel, isExiting, triggerExit]);
+    }, [onSubmit, onCancel, isExiting]);
 
     // 字体大小调整常量
     const FONT_SIZE_STEP = 2; // 每次调整的步长（px）
@@ -222,7 +262,7 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
     const handleSubmit = () => {
         const trimmed = inputRef.current?.innerText?.trim() || '';
         if (trimmed) {
-            // 如果提交内容，则不播放输入框出场动画
+            hasSubmittedRef.current = true;
             triggerExit(() => onSubmit(trimmed, { color: textColor, textAlign, fontSize }, hasCheckbox), false);
         } else {
             handleCancel();
@@ -230,7 +270,10 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
     };
 
     const handleCancel = () => {
-        triggerExit(onCancel);
+        hasSubmittedRef.current = true;
+        // 编辑已有贴纸时（initialText 非空），不播放输入框消失动画
+        // 因为贴纸会重新出现在画布上，播放动画会导致视觉闪烁
+        triggerExit(onCancel, !initialText);
     };
 
     const [localFontSize, setLocalFontSize] = useState<string>(fontSize.toString());
@@ -423,5 +466,5 @@ export const TextInput: React.FC<TextInputProps> = ({ x, y, initialText = '', in
         </div>,
         document.body
     );
-};
+});
 

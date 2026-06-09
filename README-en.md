@@ -125,6 +125,7 @@ After installation, open a new tab:
 
 - 🗂️ **Multi-Space Management** - Create, switch, import/export spaces
 - 📋 **Independent App Lists** - Each space has its own apps
+- 🚀 **Long-Press Quick Jump** - Long-press Navigator to pop up space selector, slide to jump directly
 - 💼 **Scenario-Based** - Work, study, entertainment stay separate
 
 </td>
@@ -185,6 +186,7 @@ After installation, open a new tab:
 ### 🌐 Focus Spaces Tips
 
 - **Cycle Through**: Click the space switcher button on the far right of the Dock to cycle through different spaces
+- **Quick Jump**: Long-press the space switcher button (0.2s) to pop up all other spaces as selectable blocks. Hold and slide up to your target space, then release to jump directly — no need to cycle through one by one
 - **Space Management**: Right-click the space switcher button on the far right of the Dock to pin spaces, rename spaces, delete spaces, or import/export space configurations
 
 ---

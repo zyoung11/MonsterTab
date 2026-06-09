@@ -375,6 +375,21 @@
     color: var(--color-text-primary);
 }
 
+.fixButton {
+    background: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    padding: 0 12px;
+    height: 28px;
+    width: auto;
+    border-radius: 6px;
+    color: var(--color-text-secondary);
+}
+
+.fixButton:hover {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+}
+
 /* ===== 底部区域 / Footer ===== */
 .footer {
     display: flex;

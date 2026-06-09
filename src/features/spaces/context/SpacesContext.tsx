@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { Space, SpacesState, DockItem, createDefaultSpace } from '@/shared/types';
 import { storage } from '@/shared/utils/storage';
 import { SpaceExportData, MultiSpaceExportData, createSpaceFromImport, createSpacesFromMultiImport } from '@/features/spaces/utils/spaceExportImport';
+import { prefetchIcons } from '@/features/dock/utils/iconCache';
 
 // ============================================================================
 // 数据层 Context 类型定义 (低频变化)
@@ -31,8 +32,8 @@ interface SpacesActionsContextType {
     deleteSpace: (spaceId: string) => void;
     renameSpace: (spaceId: string, newName: string) => void;
     updateCurrentSpaceApps: (apps: DockItem[]) => void;
-    importSpace: (data: SpaceExportData) => void;
-    importMultipleSpaces: (data: MultiSpaceExportData) => void;
+    importSpace: (data: SpaceExportData) => Promise<Space>;
+    importMultipleSpaces: (data: MultiSpaceExportData) => Promise<Space[]>;
     pinSpace: (spaceId: string) => void;
     setIsSwitching: (value: boolean) => void;
 }
@@ -76,6 +77,34 @@ export function SpacesProvider({ children }: SpacesProviderProps) {
     const currentIndex = useMemo(() => {
         return spaces.findIndex(s => s.id === activeSpaceId);
     }, [spaces, activeSpaceId]);
+
+    // 首次加载时预取所有空间的图标到内存缓存
+    // 这样切换空间时图标已在缓存中，不需要重新从 IndexedDB 加载
+    const hasPrefetchedRef = useRef(false);
+    useEffect(() => {
+        if (hasPrefetchedRef.current) return;
+        hasPrefetchedRef.current = true;
+
+        const allDomains: string[] = [];
+        for (const space of spaces) {
+            for (const item of space.apps) {
+                if (item.url) {
+                    try { allDomains.push(new URL(item.url).hostname); } catch {}
+                }
+                if (item.type === 'folder' && item.items) {
+                    for (const sub of item.items) {
+                        if (sub.url) {
+                            try { allDomains.push(new URL(sub.url).hostname); } catch {}
+                        }
+                    }
+                }
+            }
+        }
+
+        if (allDomains.length > 0) {
+            prefetchIcons(allDomains).catch(() => {});
+        }
+    }, []); // 仅首次运行
 
     // 持久化到 localStorage (防抖保存)
     // 跳过首次渲染，因为 storage.getSpaces() 已经处理了保存

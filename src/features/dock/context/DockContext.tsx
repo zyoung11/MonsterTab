@@ -148,8 +148,8 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // 异步获取默认项目的图标
             const fetchAllIcons = async (isMountedRef: React.MutableRefObject<boolean>) => {
                 type IconUpdateResult =
-                    | { id: string; icon: string; isFolder?: undefined; subItems?: undefined }
-                    | { id: string; isFolder: true; subItems: { id: string; icon: string }[]; icon?: undefined }
+                    | { id: string; icon: string; iconSmall?: boolean; isFolder?: undefined; subItems?: undefined }
+                    | { id: string; isFolder: true; subItems: { id: string; icon: string; iconSmall?: boolean }[]; icon?: undefined }
                     | null;
 
                 // 并行获取图标，但不立即更新状态
@@ -158,8 +158,8 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         const updatedSubItems = await Promise.all(item.items.map(async (subItem) => {
                             if (subItem.url) {
                                 try {
-                                    const { url: icon } = await fetchIcon(subItem.url);
-                                    return { id: subItem.id, icon };
+                                    const result = await fetchIcon(subItem.url);
+                                    return { id: subItem.id, icon: result.url, iconSmall: result.iconSmall };
                                 } catch (e) {
                                     return null;
                                 }
@@ -168,19 +168,24 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
                         }));
 
                         // 过滤出获取到图标的项目
-                        const validSubUpdates = updatedSubItems.filter((i): i is { id: string, icon: string } => i !== null);
+                        const validSubUpdates: { id: string; icon: string; iconSmall?: boolean }[] = [];
+                        for (const item of updatedSubItems) {
+                            if (item !== null) {
+                                validSubUpdates.push(item);
+                            }
+                        }
 
                         if (validSubUpdates.length > 0) {
                             return {
                                 id: item.id,
-                                isFolder: true,
+                                isFolder: true as const,
                                 subItems: validSubUpdates
                             };
                         }
                     } else if (item.url) {
                         try {
-                            const { url: icon } = await fetchIcon(item.url);
-                            return { id: item.id, icon };
+                            const result = await fetchIcon(item.url);
+                            return { id: item.id, icon: result.url, iconSmall: result.iconSmall };
                         } catch (e) {
                             console.error(`Failed to fetch icon for ${item.name}`, e);
                         }
@@ -203,7 +208,7 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             // 更新文件夹内的图标
                             const newSubItems = item.items.map(subItem => {
                                 const subUpdate = update.subItems?.find(su => su.id === subItem.id);
-                                return subUpdate ? { ...subItem, icon: subUpdate.icon } : subItem;
+                                return subUpdate ? { ...subItem, icon: subUpdate.icon, iconSmall: subUpdate.iconSmall } : subItem;
                             });
                             return {
                                 ...item,
@@ -212,7 +217,7 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
                             };
                         } else if (!update.isFolder && update.icon) {
                             // 更新 App 图标
-                            return { ...item, icon: update.icon };
+                            return { ...item, icon: update.icon, iconSmall: update.iconSmall };
                         }
                         return item;
                     });

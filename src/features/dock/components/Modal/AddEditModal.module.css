@@ -11,33 +11,56 @@
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0px;
   width: 320px;
   min-width: 320px !important;
   max-width: 320px !important;
   box-sizing: border-box;
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
+  font-family: var(--font-family);
 }
 
-/* 头部区域 */
+/* 覆盖 Modal 内部 .content 的默认 gap */
+.container > div {
+  gap: 0 !important;
+  font-family: var(--font-family);
+}
+
+/* 确保 input/button 继承字体 */
+.container input,
+.container button {
+  font-family: inherit;
+}
+
+/* 头部区域 - 与搜索引擎选择框 .label 完全一致 */
 .header {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  opacity: 0.8;
+  font-family: var(--font-family);
+  font-weight: var(--font-weight-medium);
   font-size: 12px;
-  font-weight: 500;
+  line-height: var(--line-height-none);
   color: var(--color-text-primary);
-  margin-bottom: 4px;
+  opacity: 0.6;
+  white-space: nowrap;
+  margin: 0;
 }
 
-/* 分隔线 */
+/* 分隔线 - 与搜索引擎选择框 .divider 完全一致 */
 .divider {
+  width: 100%;
+  height: 0;
+  position: relative;
+  margin: 0 0 16px 0;
+}
+
+.divider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
   height: 1px;
   background: var(--color-border);
-  width: 100%;
-  margin-bottom: 8px;
 }
 
 /* 表单组 */
@@ -152,7 +175,7 @@
 .footer {
   display: flex;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 /* 底部按钮通用样式 */
@@ -197,4 +220,52 @@
 .addButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ===== 批量导入区域 ===== */
+/* footer 下方的分隔线 */
+.footerDivider {
+  width: 100%;
+  height: 0;
+  position: relative;
+  margin: 10px 0;
+}
+
+.footerDivider::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--color-border);
+}
+
+/* 批量导入入口按钮 */
+.batchCard {
+  width: 100%;
+  background: var(--color-bg-secondary);
+  border-radius: 8px;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--transition-medium);
+  margin-top: 0;
+  box-sizing: border-box;
+}
+
+.batchCard:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.batchCard svg {
+  flex-shrink: 0;
+  opacity: 0.7;
 }

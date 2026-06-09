@@ -80,6 +80,12 @@
         pointer-events: none;
     }
 
+    /* 小尺寸图标 - 缩小居中显示而非撑满容器 */
+    .iconSmall {
+        object-fit: contain;
+        padding: 14px;
+    }
+
     /* 文件夹图标 - 2x2 网格布局 */
     .folderIcon {
         width: 100%;

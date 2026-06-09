@@ -3,6 +3,7 @@ import { DockItem } from '@/shared/types';
 import { fetchAndProcessIcon, generateTextIcon } from '@/features/dock/utils/iconFetcher';
 import { compressIcon } from '@/features/theme/utils/imageCompression';
 import { normalizeUrl } from '@/shared/utils/url';
+import { isFaviconRef, getDomainFromRef, resolveIconUrl } from '@/features/dock/utils/iconCache';
 import { Modal } from '@/shared/components/Modal/Modal';
 import { useLanguage } from '@/shared/context/LanguageContext';
 import styles from './AddEditModal.module.css';
@@ -14,6 +15,7 @@ interface AddEditModalProps {
   onSave: (item: Partial<DockItem>) => void;
   anchorRect?: DOMRect | null;
   hideHeader?: boolean;
+  onBatchImport?: () => void;
 }
 
 export const AddEditModal: React.FC<AddEditModalProps> = ({
@@ -23,12 +25,16 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
   onSave,
   anchorRect,
   hideHeader,
+  onBatchImport,
 }) => {
   const { t } = useLanguage();
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
   const [icon, setIcon] = useState('');
+  const [iconPreviewUrl, setIconPreviewUrl] = useState(''); // 用于预览的解析后 URL
+  const [iconSmall, setIconSmall] = useState(false);
   const [isUsingFallback, setIsUsingFallback] = useState(false);
+  const [textIconHue, setTextIconHue] = useState<number | null>(null);
   const [isFetchingIcon, setIsFetchingIcon] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,25 +47,46 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
       setName(item.name);
       setUrl(item.url || '');
       setIcon(item.icon || '');
-      setIsUsingFallback(false); // 编辑/打开时重置回退状态
+      setIconSmall(item.iconSmall || false);
+      setIsUsingFallback(false);
+      setTextIconHue(null);
     } else {
       setName('');
       setUrl('');
       setIcon('');
+      setIconSmall(false);
       setIsUsingFallback(false);
+      setTextIconHue(null);
     }
   }, [item, isOpen]);
 
-  // Effect：如果使用回退图标，当名称更改时更新文本图标
+  // 解析 icon 为可预览的 URL（处理 favicon: 引用）
   useEffect(() => {
-    if (isUsingFallback) {
-      // 如果名称可用则使用名称，否则使用 URL 中的域名
+    if (!icon) {
+      setIconPreviewUrl('');
+      return;
+    }
+    if (isFaviconRef(icon)) {
+      let cancelled = false;
+      const domain = getDomainFromRef(icon);
+      resolveIconUrl(domain).then(url => {
+        if (!cancelled) setIconPreviewUrl(url || '');
+      });
+      return () => { cancelled = true; };
+    }
+    // data URL 或其他直接可用的 URL
+    setIconPreviewUrl(icon);
+  }, [icon]);
+
+  // Effect：如果使用回退图标，当名称更改时更新文本图标（颜色保持不变）
+  useEffect(() => {
+    if (isUsingFallback && textIconHue !== null) {
       const textToUse = name.trim() || url;
       if (textToUse) {
-        setIcon(generateTextIcon(textToUse));
+        setIcon(generateTextIcon(textToUse, textIconHue));
       }
     }
-  }, [name, isUsingFallback, url]);
+  }, [name, isUsingFallback, url, textIconHue]);
 
   const handleUrlChange = async (value: string) => {
     setUrl(value);
@@ -86,9 +113,13 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
       try {
         // 自动获取：严格要求（最小 100x100）
         // 使用 fetchAndProcessIcon 统一处理获取和压缩
-        const { url: processedIcon, isFallback } = await fetchAndProcessIcon(normalized, 100);
+        const { url: processedIcon, isFallback, iconSmall: isSmall } = await fetchAndProcessIcon(normalized, 100);
         setIsUsingFallback(isFallback);
+        if (isFallback) {
+          setTextIconHue(Math.floor(Math.random() * 360));
+        }
         setIcon(processedIcon);
+        setIconSmall(!!isSmall);
       } catch (error) {
         // 静默失败
       } finally {
@@ -107,6 +138,7 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
         const compressed = await compressIcon(dataUrl);
         setIcon(compressed);
         setIsUsingFallback(false); // 用户手动上传了图标
+        setIconSmall(false);
       };
       reader.readAsDataURL(file);
     }
@@ -114,10 +146,13 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
 
   const handleUseTextIcon = () => {
     setIsUsingFallback(true);
-    // 强制立即更新，以防 effect 延迟或严格依赖于更改
+    setIconSmall(false);
+    // 每次点击按钮时生成新的随机色相
+    const newHue = Math.floor(Math.random() * 360);
+    setTextIconHue(newHue);
     const textToUse = name.trim() || url;
     if (textToUse) {
-      setIcon(generateTextIcon(textToUse));
+      setIcon(generateTextIcon(textToUse, newHue));
     }
   };
 
@@ -128,6 +163,7 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
       name: name.trim(),
       url: normalizeUrl(url), // 保存时规范化
       icon: icon,
+      iconSmall: iconSmall,
     });
   };
 
@@ -136,11 +172,15 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
     setIsFetchingIcon(true);
     try {
       const normalized = normalizeUrl(url);
-      // 手动获取：宽松要求（接受任何尺寸）
+      // 手动获取：宽松要求（接受任何尺寸），并且强制刷新缓存 (forceRefresh: true)
       // 使用 fetchAndProcessIcon 统一处理获取和压缩
-      const { url: processedIcon, isFallback } = await fetchAndProcessIcon(normalized, 0);
+      const { url: processedIcon, isFallback, iconSmall: isSmall } = await fetchAndProcessIcon(normalized, 0, true);
       setIsUsingFallback(isFallback);
+      if (isFallback) {
+        setTextIconHue(Math.floor(Math.random() * 360));
+      }
       setIcon(processedIcon);
+      setIconSmall(!!isSmall);
     } catch (error) {
       console.error('Failed to fetch icon:', error);
     } finally {
@@ -197,8 +237,8 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
             style={{ display: 'none' }}
           />
           <div className={styles.iconPreview}>
-            {icon ? (
-              <img src={icon} alt="Icon" className={styles.iconImage} />
+            {iconPreviewUrl ? (
+              <img src={iconPreviewUrl} alt="Icon" className={styles.iconImage} />
             ) : (
               <div className={styles.iconPlaceholder} />
             )}
@@ -273,6 +313,24 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
           )}
         </button>
       </div>
+
+      {!item && onBatchImport && (
+        <>
+          <div className={styles.footerDivider} />
+          <div
+            className={styles.batchCard}
+            onClick={() => {
+              onClose();
+              setTimeout(() => onBatchImport(), 300);
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h6v6H4V4zm10 0h6v6h-6V4zM4 14h6v6H4v-6zm10 0h6v6h-6v-6z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <span>{t.modal.batchImport}（beta）</span>
+          </div>
+        </>
+      )}
     </Modal>
   );
 };

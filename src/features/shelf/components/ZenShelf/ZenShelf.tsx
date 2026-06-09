@@ -9,7 +9,7 @@ import { db } from '@/shared/utils/db';
 // 贴纸图片 ID 前缀
 const STICKER_IMG_PREFIX = 'stickerimg_';
 import { StickerItem } from './StickerItem';
-import { TextInput } from './TextInput';
+import { TextInput, TextInputHandle } from './TextInput';
 import { ContextMenu } from './ContextMenu';
 import { RecycleBin } from './RecycleBin';
 import { RecycleBinModal } from './RecycleBinModal';
@@ -71,6 +71,7 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
 
     const [editingSticker, setEditingSticker] = useState<Sticker | null>(null);
     const [isAnyDragging, setIsAnyDragging] = useState(false);
+    const textInputRef = useRef<TextInputHandle>(null);
 
     const handleStickerDragStart = useCallback(() => {
         setIsAnyDragging(true);
@@ -215,7 +216,6 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
                 hasCheckbox: hasCheckbox !== undefined ? hasCheckbox : editingSticker.hasCheckbox,
             });
         } else if (textInputPos) {
-            // 在参考坐标系中存储位置
             addSticker({
                 type: 'text',
                 content,
@@ -232,7 +232,7 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
         }
         setTextInputPos(null);
         setEditingSticker(null);
-    }, [textInputPos, editingSticker, addSticker, updateSticker]);
+    }, [textInputPos, editingSticker, addSticker, updateSticker, viewportScale]);
 
     const handleTextCancel = useCallback(() => {
         setTextInputPos(null);
@@ -240,6 +240,11 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
     }, []);
 
     const handleEditSticker = useCallback((sticker: Sticker) => {
+        // 如果当前有编辑中的 TextInput，先保存它的内容
+        if (textInputRef.current) {
+            textInputRef.current.saveNow();
+        }
+        // 切换到新贴纸的编辑状态
         setEditingSticker(sticker);
         setTextInputPos({ x: sticker.x * viewportScale, y: sticker.y * viewportScale });
     }, [viewportScale]);
@@ -337,6 +342,8 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
 
             {textInputPos && (
                 <TextInput
+                    ref={textInputRef}
+                    key={editingSticker?.id || 'new'}
                     x={textInputPos.x}
                     y={textInputPos.y}
                     initialText={editingSticker?.content || ''}

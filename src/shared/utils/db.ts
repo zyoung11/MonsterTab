@@ -19,8 +19,9 @@ export interface StickerImageItem {
 
 export interface FaviconItem {
     domain: string; // 将作为主键使用
-    url: string; // 可以是 base64 data url 或 普通 url
+    data: Blob; // 图标图片 Blob（直接存储，不转 base64）
     isFallback: boolean;
+    iconSmall?: boolean; // 标记图标为小尺寸
     lastUpdated?: number; // 记录更新时间
 }
 
@@ -40,6 +41,8 @@ interface DBWrapper {
     // Favicon 操作
     saveFavicon: (item: FaviconItem) => Promise<string>;
     getFavicon: (domain: string) => Promise<FaviconItem | null>;
+    deleteFavicon: (domain: string) => Promise<void>;
+    clearAllFavicons: () => Promise<void>;
 }
 
 class IndexedDBWrapper implements DBWrapper {
@@ -325,6 +328,38 @@ class IndexedDBWrapper implements DBWrapper {
         } catch (error) {
             console.error('DB GetFavicon Error:', error);
             return null;
+        }
+    }
+
+    async deleteFavicon(domain: string): Promise<void> {
+        try {
+            const db = await this.getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(FAVICONS_STORE, 'readwrite');
+                const store = transaction.objectStore(FAVICONS_STORE);
+                const request = store.delete(domain);
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        } catch (error) {
+            console.error('DB DeleteFavicon Error:', error);
+        }
+    }
+
+    async clearAllFavicons(): Promise<void> {
+        try {
+            const db = await this.getDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction(FAVICONS_STORE, 'readwrite');
+                const store = transaction.objectStore(FAVICONS_STORE);
+                const request = store.clear();
+
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        } catch (error) {
+            console.error('DB ClearAllFavicons Error:', error);
         }
     }
 }

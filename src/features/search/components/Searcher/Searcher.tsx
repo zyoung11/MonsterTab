@@ -78,6 +78,9 @@ export const Searcher: React.FC<SearcherProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // 输入法组合输入中（如中文、日文），不处理键盘事件
+    if (e.nativeEvent.isComposing) return;
+
     if (shouldRender && suggestions.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault();

@@ -1,0 +1,59 @@
+/* SpaceSwitcher - 长按 Navigator 弹出的空间快速切换器 */
+/* 每个空间作为独立的块弹出，沿弧线排列 */
+/* 动画由 JS scaleFadeIn/scaleFadeOut 处理，弧线/旋转/缩放由 rAF 驱动 */
+
+/* 全屏遮罩层 - 捕获所有鼠标事件 */
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    background: transparent;
+}
+
+/* 块容器 - 绝对定位锚点 */
+.blocksWrapper {
+    position: relative;
+}
+
+/* 单个空间块 - 绝对定位，由 JS 控制 transform */
+.block {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+
+    /* 布局 - 与 Navigator 一致: 左上对齐 */
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    /* 尺寸 */
+    height: 64px;
+    min-width: 128px;
+    padding: 10px var(--spacing-padding-small);
+
+    /* 玻璃态外观 - 与 Navigator 一致 */
+    background: var(--color-bg-primary);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--color-border);
+    border-radius: var(--icon-border-radius, 16px);
+    box-shadow: var(--shadow-small);
+
+    /* 文字样式 - 与 Navigator .spaceName 一致 */
+    font-family: var(--font-family);
+    font-size: var(--font-size-medium);
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-primary);
+    text-transform: capitalize;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    /* 交互 */
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+
+    /* GPU 加速 */
+    will-change: transform;
+}

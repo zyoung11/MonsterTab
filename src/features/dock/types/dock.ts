@@ -7,6 +7,7 @@ export interface DockItem {
     name: string;
     url?: string;
     icon?: string;
+    iconSmall?: boolean; // 标记图标为小尺寸（<100px），渲染时缩小显示而非撑满容器
     type: 'app' | 'folder';
     items?: DockItem[]; // 仅文件夹包含
 }

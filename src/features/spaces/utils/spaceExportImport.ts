@@ -5,6 +5,7 @@
 
 import { Space, DockItem } from '@/shared/types';
 import { compressIcon, compressIconsInItems } from '@/features/theme/utils/imageCompression';
+import { isFaviconRef, getDomainFromRef, resolveIconUrl } from '@/features/dock/utils/iconCache';
 
 // ============================================================================
 // 类型定义
@@ -70,7 +71,32 @@ async function convertToExportItemAsync(item: DockItem): Promise<ExportedDockIte
 
     // 压缩图标到 500x500 WebP
     if (item.icon) {
-        exported.icon = await compressIcon(item.icon);
+        let iconForExport = item.icon;
+        // 如果是 favicon: 引用，先解析为 objectURL
+        if (isFaviconRef(item.icon)) {
+            const domain = getDomainFromRef(item.icon);
+            const resolved = await resolveIconUrl(domain);
+            if (resolved) {
+                // 将 objectURL 转为 data URL 以便导出
+                try {
+                    const resp = await fetch(resolved);
+                    const blob = await resp.blob();
+                    const reader = new FileReader();
+                    iconForExport = await new Promise<string>((resolve) => {
+                        reader.onloadend = () => resolve(reader.result as string || '');
+                        reader.onerror = () => resolve('');
+                        reader.readAsDataURL(blob);
+                    });
+                } catch {
+                    iconForExport = '';
+                }
+            } else {
+                iconForExport = '';
+            }
+        }
+        if (iconForExport) {
+            exported.icon = await compressIcon(iconForExport);
+        }
     }
 
     if (item.type === 'folder' && item.items) {

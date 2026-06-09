@@ -3,6 +3,7 @@ import { DockItem as DockItemType } from '@/shared/types';
 import { DockItem } from './DockItem';
 import { AddIcon } from './AddIcon';
 import { DockNavigator } from './DockNavigator';
+import { SpaceSwitcher } from './SpaceSwitcher';
 import { DockContextMenu } from './DockContextMenu';
 import { SpaceManageMenu } from '@/features/spaces/components/Modal/SpaceManageMenu';
 import { DragPreview } from '@/features/dock/components/DragPreview';
@@ -68,6 +69,7 @@ export const Dock: React.FC<DockProps> = ({
         isSwitching,
         setIsSwitching,
         switchToNextSpace,
+        switchToSpace,
         addSpace,
         renameSpace,
         deleteSpace,
@@ -168,6 +170,84 @@ export const Dock: React.FC<DockProps> = ({
     // 空间管理菜单状态
     const [showSpaceMenu, setShowSpaceMenu] = useState(false);
     const [spaceMenuAnchor, setSpaceMenuAnchor] = useState<DOMRect | null>(null);
+
+    // SpaceSwitcher 快速切换器状态
+    const [showSpaceSwitcher, setShowSpaceSwitcher] = useState(false);
+    const navigatorRef = useRef<HTMLDivElement>(null);
+
+    const handleNavigatorLongPress = useCallback(() => {
+        if (spaces.length <= 1) return;
+        setShowSpaceSwitcher(true);
+    }, [spaces.length]);
+
+    const handleSpaceSwitcherSelect = useCallback((spaceId: string) => {
+        if (spaceId === currentSpace.id) return;
+
+        // 使用带动画的切换 - 复用空间切换动画逻辑
+        if (isSwitching) return;
+
+        const startWidth = dockContentRef.current
+            ? dockContentRef.current.getBoundingClientRect().width
+            : 0;
+
+        if (dockContentRef.current && startWidth > 0) {
+            dockContentRef.current.style.width = `${startWidth}px`;
+        }
+
+        setIsSwitching(true);
+        setAnimationPhase('exiting');
+
+        const EXIT_DURATION = 120;
+        const ENTER_DURATION = 200;
+        const STAGGER_DELAY = 15;
+        const WIDTH_TRANSITION = 250;
+
+        setTimeout(() => {
+            setAnimationPhase('hidden');
+
+            // 使用 switchToSpace 跳转到指定空间
+            switchToSpace(spaceId);
+
+            setTimeout(() => {
+                setAnimationPhase('entering');
+
+                if (dockContentRef.current) {
+                    dockContentRef.current.style.width = '';
+                    const targetWidth = dockContentRef.current.getBoundingClientRect().width;
+
+                    if (startWidth > 0 && Math.abs(targetWidth - startWidth) > 1) {
+                        const el = dockContentRef.current;
+                        el.style.width = `${startWidth}px`;
+                        el.classList.add(styles.widthTransition);
+
+                        requestAnimationFrame(() => {
+                            requestAnimationFrame(() => {
+                                if (dockContentRef.current) {
+                                    dockContentRef.current.style.width = `${targetWidth}px`;
+                                    setTimeout(() => {
+                                        if (dockContentRef.current) {
+                                            dockContentRef.current.style.width = '';
+                                            dockContentRef.current.classList.remove(styles.widthTransition);
+                                        }
+                                    }, WIDTH_TRANSITION);
+                                }
+                            });
+                        });
+                    }
+                }
+
+                const enterDuration = ENTER_DURATION + items.length * STAGGER_DELAY;
+                setTimeout(() => {
+                    setAnimationPhase('idle');
+                    setIsSwitching(false);
+                }, enterDuration);
+            }, 10);
+        }, EXIT_DURATION);
+    }, [isSwitching, currentSpace.id, items.length, switchToSpace, setIsSwitching]);
+
+    const handleSpaceSwitcherClose = useCallback(() => {
+        setShowSpaceSwitcher(false);
+    }, []);
 
     const handleSpaceContextMenu = useCallback((e: React.MouseEvent) => {
         setSpaceMenuAnchor((e.currentTarget as HTMLElement).getBoundingClientRect());
@@ -414,6 +494,7 @@ export const Dock: React.FC<DockProps> = ({
             </div>
             {/* DockNavigator - 空间切换器，使用绝对定位始终靠右 */}
             <div
+                ref={navigatorRef}
                 className={`${styles.dockNavigator} ${animationPhase === 'exiting' || animationPhase === 'hidden' ? styles.navigatorTransitioning : ''}`}
             >
                 <DockNavigator
@@ -422,9 +503,20 @@ export const Dock: React.FC<DockProps> = ({
                     currentIndex={currentIndex}
                     onSwitch={handleSpaceSwitch}
                     onContextMenu={handleSpaceContextMenu}
+                    onLongPress={handleNavigatorLongPress}
                     disabled={isSwitching}
                 />
             </div>
+            {/* SpaceSwitcher - 长按 Navigator 弹出的空间快速切换器 */}
+            {showSpaceSwitcher && (
+                <SpaceSwitcher
+                    spaces={spaces}
+                    activeSpaceId={currentSpace.id}
+                    onSelect={handleSpaceSwitcherSelect}
+                    onClose={handleSpaceSwitcherClose}
+                    anchorRect={navigatorRef.current?.getBoundingClientRect() ?? null}
+                />
+            )}
             <DragPreview
                 isActive={dragState.isDragging || dragState.isAnimatingReturn}
                 item={dragState.item}
