@@ -72,7 +72,7 @@ interface DockContextType extends DockDataContextType, DockUIContextType, DockDr
 
 export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // 从 SpacesContext 获取当前空间的 apps
-    const { currentSpace, updateCurrentSpaceApps } = useSpaces();
+    const { currentSpace, updateSpaceApps } = useSpaces();
 
     // 数据状态: dockItems 来自当前 Space
     const [dockItems, setDockItemsInternal] = useState<DockItem[]>(currentSpace.apps);
@@ -84,23 +84,27 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [folderAnchor, setFolderAnchor] = useState<DOMRect | null>(null);
     const [draggingItem, setDraggingItem] = useState<DockItem | null>(null);
     const [folderPlaceholderActive, setFolderPlaceholderActive] = useState(false);
+    const activeSpaceIdRef = React.useRef(currentSpace.id);
 
     // 当 currentSpace 变化时同步 dockItems
     useEffect(() => {
+        activeSpaceIdRef.current = currentSpace.id;
         setDockItemsInternal(currentSpace.apps);
     }, [currentSpace.id, currentSpace.apps]);
 
     // 包装 setDockItems: 同时更新本地状态和 SpacesContext
     const setDockItems: React.Dispatch<React.SetStateAction<DockItem[]>> = useCallback(
         (action) => {
-            setDockItemsInternal((prev) => {
-                const newItems = typeof action === 'function' ? action(prev) : action;
-                // 同步回 SpacesContext
-                updateCurrentSpaceApps(newItems);
-                return newItems;
-            });
+            const targetSpaceId = currentSpace.id;
+
+            if (activeSpaceIdRef.current === targetSpaceId) {
+                setDockItemsInternal(action);
+            }
+
+            // 按发起操作时的空间 ID 写回，避免异步图标获取完成后覆盖当前已切换到的空间。
+            updateSpaceApps(targetSpaceId, action);
         },
-        [updateCurrentSpaceApps]
+        [currentSpace.id, updateSpaceApps]
     );
 
     // 存储 openFolderId 的 ref 用于 handleItemDelete 以减少依赖

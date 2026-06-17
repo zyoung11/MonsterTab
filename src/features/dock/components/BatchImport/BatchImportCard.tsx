@@ -127,7 +127,7 @@ export const BatchImportCard: React.FC<BatchImportCardProps> = ({
         setIsFetchingIcon(true);
         try {
             const normalized = normalizeUrl(data.url);
-            const { url: processedIcon, isFallback, iconSmall: isSmall } = await fetchAndProcessIcon(normalized, 0, true);
+            const { url: processedIcon, isFallback, iconSmall: isSmall } = await fetchAndProcessIcon(normalized, 0, true, true);
             const currentData = dataRef.current;
             if (isFallback) {
                 const hue = Math.floor(Math.random() * 360);

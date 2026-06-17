@@ -31,7 +31,9 @@ interface SpacesActionsContextType {
     addSpace: (name?: string) => void;
     deleteSpace: (spaceId: string) => void;
     renameSpace: (spaceId: string, newName: string) => void;
-    updateCurrentSpaceApps: (apps: DockItem[]) => void;
+    updateCurrentSpaceApps: (apps: DockItem[] | ((prev: DockItem[]) => DockItem[])) => void;
+    /** 按指定空间 ID 更新 apps（异步操作安全，不受空间切换影响） */
+    updateSpaceApps: (spaceId: string, apps: DockItem[] | ((prev: DockItem[]) => DockItem[])) => void;
     importSpace: (data: SpaceExportData) => Promise<Space>;
     importMultipleSpaces: (data: MultiSpaceExportData) => Promise<Space[]>;
     pinSpace: (spaceId: string) => void;
@@ -266,11 +268,24 @@ export function SpacesProvider({ children }: SpacesProviderProps) {
     // Apps 更新（供 DockContext 调用）
     // ============================================================================
 
-    const updateCurrentSpaceApps = useCallback((apps: DockItem[]) => {
+    const updateCurrentSpaceApps = useCallback((apps: DockItem[] | ((prev: DockItem[]) => DockItem[])) => {
         setSpacesState(prev => ({
             ...prev,
             spaces: prev.spaces.map(s =>
-                s.id === prev.activeSpaceId ? { ...s, apps } : s
+                s.id === prev.activeSpaceId
+                    ? { ...s, apps: typeof apps === 'function' ? apps(s.apps) : apps }
+                    : s
+            ),
+        }));
+    }, []);
+
+    const updateSpaceApps = useCallback((spaceId: string, apps: DockItem[] | ((prev: DockItem[]) => DockItem[])) => {
+        setSpacesState(prev => ({
+            ...prev,
+            spaces: prev.spaces.map(s =>
+                s.id === spaceId
+                    ? { ...s, apps: typeof apps === 'function' ? apps(s.apps) : apps }
+                    : s
             ),
         }));
     }, []);
@@ -294,6 +309,7 @@ export function SpacesProvider({ children }: SpacesProviderProps) {
         deleteSpace,
         renameSpace,
         updateCurrentSpaceApps,
+        updateSpaceApps,
         importSpace,
         importMultipleSpaces,
         pinSpace,
@@ -305,6 +321,7 @@ export function SpacesProvider({ children }: SpacesProviderProps) {
         deleteSpace,
         renameSpace,
         updateCurrentSpaceApps,
+        updateSpaceApps,
         importSpace,
         importMultipleSpaces,
         pinSpace,

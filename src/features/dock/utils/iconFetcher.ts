@@ -84,7 +84,12 @@ const fetchAndProbeImage = async (
  * 2. 进行中的请求 (去重)
  * 3. 网络获取 → 存 Blob 到 IndexedDB → 返回引用 ID
  */
-export const fetchIcon = async (url: string, minSize: number = 100, forceRefresh: boolean = false): Promise<IconResult> => {
+export const fetchIcon = async (
+  url: string,
+  minSize: number = 100,
+  forceRefresh: boolean = false,
+  allowPermissionRequest: boolean = false
+): Promise<IconResult> => {
   try {
     const urlObj = new URL(url);
     const domain = urlObj.hostname;
@@ -129,14 +134,14 @@ export const fetchIcon = async (url: string, minSize: number = 100, forceRefresh
     }
 
     // 2. 请求去重
-    const cacheKey = `${domain}:${minSize}:${forceRefresh}`;
+    const cacheKey = `${domain}:${minSize}:${forceRefresh}:${allowPermissionRequest}`;
     const pending = pendingRequests.get(cacheKey);
     if (pending) {
       return pending;
     }
 
     // 3. 网络获取
-    const fetchPromise = fetchIconInternal(url, domain, minSize);
+    const fetchPromise = fetchIconInternal(url, domain, minSize, allowPermissionRequest);
     pendingRequests.set(cacheKey, fetchPromise);
 
     try {
@@ -155,7 +160,7 @@ export const fetchIcon = async (url: string, minSize: number = 100, forceRefresh
  */
 const refreshFallbackIcon = async (url: string, domain: string, minSize: number) => {
   try {
-    const result = await fetchIconFromNetwork(url, domain, minSize);
+    const result = await fetchIconFromNetwork(url, domain, minSize, false);
     if (result && result.kind === 'blob') {
       invalidateIconCache(domain);
       await db.saveFavicon({
@@ -175,8 +180,13 @@ const refreshFallbackIcon = async (url: string, domain: string, minSize: number)
  * 获取并自动处理图标（供 Modal 等组件使用）
  * 返回可直接显示的 URL（引用 ID 或 data URL）
  */
-export const fetchAndProcessIcon = async (url: string, minSize: number = 100, forceRefresh: boolean = false): Promise<IconResult> => {
-  return fetchIcon(url, minSize, forceRefresh);
+export const fetchAndProcessIcon = async (
+  url: string,
+  minSize: number = 100,
+  forceRefresh: boolean = false,
+  allowPermissionRequest: boolean = false
+): Promise<IconResult> => {
+  return fetchIcon(url, minSize, forceRefresh, allowPermissionRequest);
 };
 
 /**
@@ -190,7 +200,8 @@ export const fetchAndProcessIcon = async (url: string, minSize: number = 100, fo
 const fetchIconFromNetwork = async (
   url: string,
   domain: string,
-  minSize: number
+  minSize: number,
+  allowPermissionRequest: boolean
 ): Promise<NetworkIconResult | null> => {
   try {
     const urlObj = new URL(url);
@@ -230,10 +241,12 @@ const fetchIconFromNetwork = async (
     // ================================================================
     // 策略 3: 动态请求权限后重试 fetch → 返回 Blob
     // ================================================================
-    const permitted = await ensureHostPermission();
-    if (permitted) {
-      const retryResult = await tryFetchStrategy(highPriorityCandidates, fallbackCandidates, minSize);
-      if (retryResult) return retryResult;
+    if (allowPermissionRequest) {
+      const permitted = await ensureHostPermission();
+      if (permitted) {
+        const retryResult = await tryFetchStrategy(highPriorityCandidates, fallbackCandidates, minSize);
+        if (retryResult) return retryResult;
+      }
     }
 
     return null;
@@ -460,8 +473,13 @@ const loadImageWithCORS = (src: string): Promise<HTMLImageElement> => {
 /**
  * 内部图标获取逻辑：网络获取 → 存 IndexedDB → 返回引用 ID 或直接 URL
  */
-const fetchIconInternal = async (url: string, domain: string, minSize: number): Promise<IconResult> => {
-  const networkResult = await fetchIconFromNetwork(url, domain, minSize);
+const fetchIconInternal = async (
+  url: string,
+  domain: string,
+  minSize: number,
+  allowPermissionRequest: boolean
+): Promise<IconResult> => {
+  const networkResult = await fetchIconFromNetwork(url, domain, minSize, allowPermissionRequest);
 
   if (networkResult) {
     if (networkResult.kind === 'blob') {

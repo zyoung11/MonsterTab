@@ -174,7 +174,7 @@ export const AddEditModal: React.FC<AddEditModalProps> = ({
       const normalized = normalizeUrl(url);
       // 手动获取：宽松要求（接受任何尺寸），并且强制刷新缓存 (forceRefresh: true)
       // 使用 fetchAndProcessIcon 统一处理获取和压缩
-      const { url: processedIcon, isFallback, iconSmall: isSmall } = await fetchAndProcessIcon(normalized, 0, true);
+      const { url: processedIcon, isFallback, iconSmall: isSmall } = await fetchAndProcessIcon(normalized, 0, true, true);
       setIsUsingFallback(isFallback);
       if (isFallback) {
         setTextIconHue(Math.floor(Math.random() * 360));

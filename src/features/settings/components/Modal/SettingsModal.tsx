@@ -145,7 +145,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
     } = useTheme();
 
     const { language, setLanguage, t } = useLanguage();
-    const { currentSpace, updateCurrentSpaceApps } = useSpaces();
+    const { currentSpace, updateSpaceApps } = useSpaces();
 
     const systemTheme = useSystemTheme();
     const [isVisible, setIsVisible] = useState(isOpen);
@@ -225,6 +225,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
         if (isFixingIcons) return;
         setIsFixingIcons(true);
 
+        // 捕获当前空间 ID，避免异步完成后用户已切换空间导致写入错误目标
+        const targetSpaceId = currentSpace.id;
+        const targetApps = currentSpace.apps;
+
         try {
             const processItems = async (items: DockItem[]): Promise<DockItem[]> => {
                 const newItems = [...items];
@@ -254,7 +258,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                         if (needsFix) {
                             try {
                                 // 强制重新从网络获取图标
-                                const { url: processedIcon, isFallback, iconSmall } = await fetchAndProcessIcon(normalized, 0, true);
+                                const { url: processedIcon, isFallback, iconSmall } = await fetchAndProcessIcon(normalized, 0, true, true);
                                 if (!isFallback) {
                                     newItems[i] = { ...item, icon: processedIcon, iconSmall: !!iconSmall };
                                 }
@@ -265,8 +269,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                 return newItems;
             };
 
-            const updatedApps = await processItems(currentSpace.apps);
-            updateCurrentSpaceApps(updatedApps);
+            const updatedApps = await processItems(targetApps);
+            // 按捕获的空间 ID 精确写入，而非当前活跃空间
+            updateSpaceApps(targetSpaceId, updatedApps);
         } finally {
             setIsFixingIcons(false);
         }
