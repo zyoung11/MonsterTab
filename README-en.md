@@ -232,16 +232,24 @@ After installation, open a new tab:
 ### 💾 Backup & Restore
 
 **How to backup data?**
+- **Full Backup**: Open the top-left settings panel → Select "Export Backup" → Save the `.zip` file
 - **Space Configurations**: Right-click the space switcher button on the far right of the Dock → Select "Export Space" → Save JSON file
 
 **How to restore data?**
+- **Full Restore**: Open the top-left settings panel → Select "Import Backup" → Choose the exported `.zip` file
 - **Space Configurations**: Right-click the space switcher button on the far right of the Dock → Select "Import Space" → Choose previously exported JSON file
+
+**What's the difference between cloud sync and local backup?**
+- **Export/Import Backup**: Creates a local `.zip` file for manual backup, migration, and restore
+- **WebDAV Cloud Sync**: Syncs your configuration across devices through your own WebDAV service, with wallpapers and sticker images available as optional assets
 
 ---
 
 ## 📝 About the Project
 
 Eclipse Tab is a browser extension project built with modern web technologies, with 90% of the code completed through AI-assisted coding (VibeCoding).
+
+Special thanks to [@SheepTAO](https://github.com/SheepTAO) for contributing the WebDAV cloud sync feature, making it possible to sync Eclipse Tab configuration and assets across devices.
 
 **Tech Stack & Architecture**
 - **React 18 + TypeScript + Vite**
