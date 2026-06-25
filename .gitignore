@@ -2,3 +2,9 @@
 node_modules/
 # 忽略 Mac 系统文件
 .DS_Store
+# 构建产物
+dist/
+dist.crx
+dist.pem
+# 原作者个人数据
+Author's Common Use.json
