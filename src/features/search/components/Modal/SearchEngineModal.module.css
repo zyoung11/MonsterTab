@@ -83,10 +83,9 @@
   transition: background var(--transition-instant), transform var(--transition-instant);
 }
 
-/* 选中的选项 - 带下划线 */
 .selected {
-  text-decoration: underline;
-  text-underline-position: from-font;
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-small);
 }
 
 /* 搜索引擎名称 */

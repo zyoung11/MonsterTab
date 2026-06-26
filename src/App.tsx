@@ -77,6 +77,8 @@ function App() {
   // 用于检测悬停区域的 Refs
   const settingsAreaRef = useRef<HTMLDivElement>(null);
   const editorAreaRef = useRef<HTMLDivElement>(null);
+  const searchEngineTabTimerRef = useRef<number>();
+  const lastSearchEngineToggleRef = useRef(0);
 
   // 跟踪哪些 Modal 已经被打开过，以便保持挂载从而播放退出动画
   const mountedModals = useRef({
@@ -244,6 +246,26 @@ function App() {
         onSearchEngineClick={(rect) => {
           setSearchEngineAnchor(rect);
           setIsSearchEngineModalOpen(true);
+        }}
+        onSearchEngineTab={(rect) => {
+          if (!isSearchEngineModalOpen) {
+            if (Date.now() - lastSearchEngineToggleRef.current < 300) {
+              return;
+            }
+            lastSearchEngineToggleRef.current = Date.now();
+            setSearchEngineAnchor(rect);
+            setIsSearchEngineModalOpen(true);
+          }
+          const currentIndex = SEARCH_ENGINES.findIndex(e => e.id === selectedSearchEngine.id);
+          const nextIndex = (currentIndex + 1) % SEARCH_ENGINES.length;
+          setSelectedSearchEngine(SEARCH_ENGINES[nextIndex]);
+          if (searchEngineTabTimerRef.current) {
+            clearTimeout(searchEngineTabTimerRef.current);
+          }
+          searchEngineTabTimerRef.current = window.setTimeout(() => {
+            lastSearchEngineToggleRef.current = Date.now();
+            setIsSearchEngineModalOpen(false);
+          }, 500);
         }}
         onItemEdit={handleItemEdit}
         onItemAdd={(rect) => {

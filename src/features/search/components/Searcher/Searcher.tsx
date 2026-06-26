@@ -9,6 +9,7 @@ interface SearcherProps {
   searchEngine: SearchEngine;
   onSearch: (query: string) => void;
   onSearchEngineClick: (anchorRect: DOMRect) => void;
+  onSearchEngineTab?: (anchorRect: DOMRect) => void;
   openInNewTab?: boolean;
   containerStyle?: React.CSSProperties;
 }
@@ -17,6 +18,7 @@ export const Searcher: React.FC<SearcherProps> = ({
   searchEngine,
   onSearch,
   onSearchEngineClick,
+  onSearchEngineTab,
   openInNewTab = true,
   containerStyle,
 }) => {
@@ -24,6 +26,7 @@ export const Searcher: React.FC<SearcherProps> = ({
   const [isFocused, setIsFocused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
+  const engineRef = useRef<HTMLParagraphElement>(null);
 
   const { suggestions } = useSearchSuggestions(query);
 
@@ -101,6 +104,17 @@ export const Searcher: React.FC<SearcherProps> = ({
       } else {
         handleSearch(query);
       }
+      return;
+    }
+
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const engineRect = engineRef.current?.getBoundingClientRect();
+      if (engineRect) {
+        const stableRect = new DOMRect(engineRect.left, engineRect.top, 80, engineRect.height);
+        onSearchEngineTab?.(stableRect);
+      }
+      return;
     }
   };
 
@@ -136,6 +150,7 @@ export const Searcher: React.FC<SearcherProps> = ({
           <p className={styles.label}>{t.search.searchBy}</p>
           <div className={styles.searchTool}>
             <p
+              ref={engineRef}
               className={styles.searchEngine}
               onClick={(e) => {
                 const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();

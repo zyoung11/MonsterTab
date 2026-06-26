@@ -8,12 +8,14 @@ import styles from '@/App.module.css';
 
 interface DockLayoutContainerProps {
     onSearchEngineClick: (rect: DOMRect) => void;
+    onSearchEngineTab?: (rect: DOMRect) => void;
     onItemEdit: (item: DockItem, rect?: DOMRect) => void;
     onItemAdd: (rect?: DOMRect | null) => void;
 }
 
 export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.memo(({
     onSearchEngineClick,
+    onSearchEngineTab,
     onItemEdit,
     onItemAdd
 }) => {
@@ -94,6 +96,10 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
         }
     }, [setOpenFolderId]);
 
+    const handleSearchEngineTab = useCallback((anchorRect: DOMRect) => {
+        onSearchEngineTab?.(anchorRect);
+    }, [onSearchEngineTab]);
+
     const handleSearch = useCallback((query: string) => {
         if (selectedSearchEngine.id === 'default') {
             // @ts-ignore
@@ -125,6 +131,7 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
                 searchEngine={selectedSearchEngine}
                 onSearch={handleSearch}
                 onSearchEngineClick={onSearchEngineClick}
+                onSearchEngineTab={handleSearchEngineTab}
                 openInNewTab={openInNewTab}
                 containerStyle={dockWidth ? { width: `${dockWidth}px` } : undefined}
             />
