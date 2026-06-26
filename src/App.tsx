@@ -352,7 +352,10 @@ function App() {
             isOpen={isSearchEngineModalOpen}
             selectedEngine={selectedSearchEngine}
             engines={SEARCH_ENGINES}
-            onClose={() => setIsSearchEngineModalOpen(false)}
+            onClose={() => {
+              setIsSearchEngineModalOpen(false);
+              document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+            }}
             onSelect={setSelectedSearchEngine}
             anchorRect={searchEngineAnchor}
           />
