@@ -1,6 +1,6 @@
 # Monster Tab
 
-> 基于 [Eclipse Tab](https://github.com/ENCRE0520/EclipseTab) 的修改版
+> 基于 [Eclipse Tab](https://github.com/ENCRE0520/EclipseTab)
 
 ## 技术栈
 
