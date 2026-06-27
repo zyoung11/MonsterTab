@@ -863,13 +863,14 @@ const StickerItemComponent: React.FC<StickerItemProps> = ({
                             className={styles.resizeHandle}
                             onMouseDown={handleResizeStart}
                         />
-                        {/* 旋转控制柄 - 仅在悬停时可见 */}
-                        <div
-                            className={styles.rotateHandle}
-                            onMouseDown={handleRotateStart}
-                        />
                     </div>
                 )}
+
+                {/* 旋转控制柄 - 仅悬停时可见 */}
+                <div
+                    className={styles.rotateHandle}
+                    onMouseDown={handleRotateStart}
+                />
 
                 {/* 删除按钮 - 在创意模式下悬停时可见 */}
                 {isCreativeMode && !isEditMode && (
