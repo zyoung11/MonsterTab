@@ -8,3 +8,6 @@ dist.crx
 dist.pem
 # 原作者个人数据
 Author's Common Use.json
+# 扩展包
+extension.zip
+extension.xpi

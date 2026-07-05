@@ -586,7 +586,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                     {/* 页脚 - GitHub 链接 */}
                     <div className={styles.footer}>
                         <a
-                            href="https://github.com/zyoung11/EclipseTab"
+                            href="https://github.com/zyoung11/MonsterTab"
                             target="_blank"
                             rel="noopener noreferrer"
                             className={styles.githubLink}
