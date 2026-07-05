@@ -22,6 +22,8 @@
 
 下载后解压（或直接保留 `.xpi`），在浏览器扩展管理页开启开发者模式，加载已解压的扩展即可
 
+> Firefox 需要打开 `about:config`，将 `xpinstall.signatures.required` 设为 `false`，否则无法加载未签名的 `.xpi` 文件
+
 ### Zen Browser
 
 按 Firefox 方式安装后，打开 `about:config`，将 `zen.urlbar.replace-newtab` 设为 `false`
