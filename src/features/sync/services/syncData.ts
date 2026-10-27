@@ -249,3 +249,13 @@ export function hasLocalChanges(): boolean {
 export function saveUploadFingerprint(): void {
     localStorage.setItem(STORAGE_KEY_FINGERPRINT, computeLocalFingerprint());
 }
+
+/**
+ * 检查本地是否存在未上传的改动
+ * 首次使用（无指纹记录）时返回 false，允许自动下载云端数据
+ */
+export function hasUnsyncedEdits(): boolean {
+    const lastFp = localStorage.getItem(STORAGE_KEY_FINGERPRINT);
+    if (!lastFp) return false;
+    return computeLocalFingerprint() !== lastFp;
+}

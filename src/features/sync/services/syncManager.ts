@@ -4,7 +4,7 @@
  */
 
 import { WebDAVConfig, testWebDAVConnection, uploadSyncData, downloadSyncData, uploadAsset, downloadAsset, listAssetKeys, deleteAsset } from './webdavClient';
-import { packageLocalData, collectAssetBlobs, restoreAssetBlobs, restoreFromSyncData, isRemoteNewer, getLastSyncTime, SyncOptions, hasLocalChanges, saveUploadFingerprint } from './syncData';
+import { packageLocalData, collectAssetBlobs, restoreAssetBlobs, restoreFromSyncData, isRemoteNewer, getLastSyncTime, SyncOptions, hasLocalChanges, hasUnsyncedEdits, saveUploadFingerprint } from './syncData';
 
 export interface SyncResult {
     ok: boolean;
@@ -61,6 +61,10 @@ export async function autoSync(): Promise<void> {
     const lastSync = getLastSyncTime();
 
     if (lastSync === 0) {
+        if (hasUnsyncedEdits()) {
+            console.warn('[Sync] Local edits are not uploaded. Skip auto download to protect them. Resolve the conflict in the sync dialog.');
+            return;
+        }
         const result = await downloadFromCloud(true);
         if (result.ok) {
             setTimeout(() => window.location.reload(), 300);
@@ -74,6 +78,10 @@ export async function autoSync(): Promise<void> {
 
     const update = await checkForUpdates();
     if (update.hasUpdate) {
+        if (hasUnsyncedEdits()) {
+            console.warn('[Sync] Cloud is newer but local edits are not uploaded. Skip auto download to protect them. Resolve the conflict in the sync dialog.');
+            return;
+        }
         await downloadFromCloud(true);
         setTimeout(() => window.location.reload(), 300);
         return;

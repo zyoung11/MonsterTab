@@ -1,5 +1,8 @@
 import { DockItem, SearchEngine, SpacesState, createDefaultSpacesState, Sticker } from '@/shared/types';
 
+/** 空间数据的 localStorage 键名 */
+export const SPACES_STORAGE_KEY = 'MonsterTab_spaces';
+
 const STORAGE_KEYS = {
   DOCK_ITEMS: 'MonsterTab_dockItems',
   SEARCH_ENGINE: 'MonsterTab_searchEngine',
@@ -17,7 +20,7 @@ const STORAGE_KEYS = {
   WALLPAPER_ID: 'MonsterTab_wallpaperId',
 
   // Focus Spaces
-  SPACES: 'MonsterTab_spaces',
+  SPACES: SPACES_STORAGE_KEY,
   // Zen Shelf Stickers
   STICKERS: 'MonsterTab_stickers',
   // Deleted Stickers (Recycle Bin)

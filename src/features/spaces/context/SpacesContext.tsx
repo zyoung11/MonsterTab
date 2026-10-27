@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Space, SpacesState, DockItem, createDefaultSpace } from '@/shared/types';
-import { storage } from '@/shared/utils/storage';
+import { storage, SPACES_STORAGE_KEY } from '@/shared/utils/storage';
 import { SpaceExportData, MultiSpaceExportData, createSpaceFromImport, createSpacesFromMultiImport } from '@/features/spaces/utils/spaceExportImport';
 import { prefetchIcons } from '@/features/dock/utils/iconCache';
 
@@ -111,6 +111,22 @@ export function SpacesProvider({ children }: SpacesProviderProps) {
     // 持久化到 localStorage (防抖保存)
     // 跳过首次渲染，因为 storage.getSpaces() 已经处理了保存
     const saveTimeoutRef = useRef<number>();
+    const pendingSaveRef = useRef(false);
+    const spacesStateRef = useRef(spacesState);
+    spacesStateRef.current = spacesState;
+
+    /**
+     * 立即把待写入的空间数据写入 localStorage
+     */
+    const flushSpacesSave = useCallback(() => {
+        if (saveTimeoutRef.current) {
+            clearTimeout(saveTimeoutRef.current);
+            saveTimeoutRef.current = undefined;
+        }
+        if (!pendingSaveRef.current) return;
+        pendingSaveRef.current = false;
+        storage.saveSpaces(spacesStateRef.current);
+    }, []);
 
     useEffect(() => {
         if (isFirstRenderRef.current) {
@@ -121,16 +137,56 @@ export function SpacesProvider({ children }: SpacesProviderProps) {
         if (saveTimeoutRef.current) {
             clearTimeout(saveTimeoutRef.current);
         }
+        pendingSaveRef.current = true;
         saveTimeoutRef.current = window.setTimeout(() => {
-            storage.saveSpaces(spacesState);
+            saveTimeoutRef.current = undefined;
+            pendingSaveRef.current = false;
+            const json = JSON.stringify(spacesStateRef.current);
+            if (localStorage.getItem(SPACES_STORAGE_KEY) !== json) {
+                storage.saveSpaces(spacesStateRef.current);
+            }
         }, 500);
 
         return () => {
             if (saveTimeoutRef.current) {
                 clearTimeout(saveTimeoutRef.current);
+                saveTimeoutRef.current = undefined;
             }
         };
     }, [spacesState]);
+
+    useEffect(() => {
+        const handlePageHide = () => flushSpacesSave();
+        const handleVisibilityChange = () => {
+            if (document.hidden) flushSpacesSave();
+        };
+        const handleStorage = (event: StorageEvent) => {
+            if (event.key !== SPACES_STORAGE_KEY || event.newValue === null) return;
+            if (pendingSaveRef.current || saveTimeoutRef.current) {
+                flushSpacesSave();
+                return;
+            }
+            if (event.newValue === JSON.stringify(spacesStateRef.current)) return;
+            try {
+                const parsed = JSON.parse(event.newValue);
+                if (parsed && Array.isArray(parsed.spaces) && parsed.spaces.length > 0) {
+                    setSpacesState(parsed);
+                }
+            } catch {
+                return;
+            }
+        };
+        window.addEventListener('pagehide', handlePageHide);
+        window.addEventListener('beforeunload', handlePageHide);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('storage', handleStorage);
+        return () => {
+            window.removeEventListener('pagehide', handlePageHide);
+            window.removeEventListener('beforeunload', handlePageHide);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('storage', handleStorage);
+        };
+    }, [flushSpacesSave]);
 
     // ============================================================================
     // 空间切换操作
