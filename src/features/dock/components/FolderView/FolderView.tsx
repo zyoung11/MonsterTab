@@ -281,6 +281,7 @@ export const FolderView: React.FC<FolderViewProps> = ({
                     itemRefs.current[index] = el;
                   }}
                   className={`${styles.gridItem} ${isDraggingSource ? styles.isBeingDragged : ''}`}
+                  data-item-id={item.id}
                   style={{
                     width: ITEM_WIDTH,
                     height: ITEM_HEIGHT,

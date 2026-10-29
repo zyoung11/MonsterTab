@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { SearchEngine } from '@/shared/types';
 import styles from './Searcher.module.css';
 import { useSearchSuggestions } from '@/features/search/hooks/useSearchSuggestions';
@@ -49,36 +49,6 @@ export const Searcher: React.FC<SearcherProps> = ({
     }
   }, [showSuggestions, shouldRender]);
 
-  /**
-   * 在不抢占其他输入焦点的前提下聚焦搜索框
-   */
-  const focusSearchInput = useCallback(() => {
-    const input = inputRef.current;
-    if (!input) return;
-    const active = document.activeElement;
-    const canStealFocus = !active || active === document.body || active === input;
-    if (!canStealFocus) return;
-    input.focus({ preventScroll: true });
-  }, []);
-
-  useEffect(() => {
-    const retryTimers = [0, 50, 100, 300].map((delay) => window.setTimeout(focusSearchInput, delay));
-    const handleVisibilityChange = () => {
-      if (!document.hidden) focusSearchInput();
-    };
-    const handleWindowFocus = () => focusSearchInput();
-    const handlePageShow = () => focusSearchInput();
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleWindowFocus);
-    window.addEventListener('pageshow', handlePageShow);
-    return () => {
-      retryTimers.forEach((timer) => clearTimeout(timer));
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleWindowFocus);
-      window.removeEventListener('pageshow', handlePageShow);
-    };
-  }, [focusSearchInput]);
-
   // 当建议列表变化时重置激活索引
   useEffect(() => {
     setActiveIndex(-1);
@@ -108,6 +78,13 @@ export const Searcher: React.FC<SearcherProps> = ({
   const handleKeyDown = (e: React.KeyboardEvent) => {
     // 输入法组合输入中（如中文、日文），不处理键盘事件
     if (e.nativeEvent.isComposing) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      inputRef.current?.blur();
+      setIsFocused(false);
+      return;
+    }
 
     if (shouldRender && suggestions.length > 0) {
       if (e.key === 'ArrowDown') {
@@ -194,7 +171,6 @@ export const Searcher: React.FC<SearcherProps> = ({
             type="text"
             className={styles.searchInput}
             placeholder=""
-            autoFocus
             data-search-input
             value={query}
             onChange={(e) => setQuery(e.target.value)}

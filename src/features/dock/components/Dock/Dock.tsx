@@ -7,6 +7,7 @@ import { SpaceSwitcher } from './SpaceSwitcher';
 import { DockContextMenu } from './DockContextMenu';
 import { SpaceManageMenu } from '@/features/spaces/components/Modal/SpaceManageMenu';
 import { DragPreview } from '@/features/dock/components/DragPreview';
+import { SWITCH_SPACE_EVENT } from '@/shared/constants/events';
 
 import { useDragAndDrop } from '@/features/dock/hooks/useDragAndDrop';
 import { useDockDrag, useDockUI } from '@/features/dock/context/DockContext';
@@ -166,6 +167,12 @@ export const Dock: React.FC<DockProps> = ({
             }, 10);
         }, EXIT_DURATION);
     }, [isSwitching, spaces.length, items.length, switchToNextSpace, setIsSwitching]);
+
+    useEffect(() => {
+        const handleSwitchSpaceEvent = () => handleSpaceSwitch();
+        window.addEventListener(SWITCH_SPACE_EVENT, handleSwitchSpaceEvent);
+        return () => window.removeEventListener(SWITCH_SPACE_EVENT, handleSwitchSpaceEvent);
+    }, [handleSpaceSwitch]);
 
     // 空间管理菜单状态
     const [showSpaceMenu, setShowSpaceMenu] = useState(false);
@@ -446,6 +453,7 @@ export const Dock: React.FC<DockProps> = ({
                             ref={el => { itemRefs.current[index] = el; }}
                             className={`${styles.dockItemWrapper} ${isDragging ? styles.isBeingDragged : ''} ${animationClass}`}
                             data-dock-item-wrapper="true"
+                            data-item-id={item.id}
                             style={getItemWrapperStyle(index, isDragging, translateX, placeholderIndex, isInteracting)}
                         >
                             <DockItem

@@ -28,6 +28,6 @@
         "https://suggestion.baidu.com/*"
     ],
     "chrome_url_overrides": {
-        "newtab": "index.html"
+        "newtab": "relay.html"
     }
 }

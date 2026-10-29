@@ -146,6 +146,11 @@ interface Translations {
         fontSizeIncrease: string;
         fontSizeDecrease: string;
     };
+    keyHint: {
+        title: string;
+        searchInput: string;
+        switchSpace: string;
+    };
 }
 
 const translations: Record<Language, Translations> = {
@@ -292,6 +297,11 @@ const translations: Record<Language, Translations> = {
             confirm: 'Confirm',
             fontSizeIncrease: 'Ctrl/⌘ + ↑ Increase, +Shift for larger step',
             fontSizeDecrease: 'Ctrl/⌘ + ↓ Decrease, +Shift for larger step',
+        },
+        keyHint: {
+            title: 'Quick Open',
+            searchInput: 'Search input',
+            switchSpace: 'Switch space',
         }
     },
     zh: {
@@ -437,6 +447,11 @@ const translations: Record<Language, Translations> = {
             confirm: '确认',
             fontSizeIncrease: 'Ctrl/⌘ + ↑ 增大字号，+Shift 增大更多',
             fontSizeDecrease: 'Ctrl/⌘ + ↓ 减小字号，+Shift 减小更多',
+        },
+        keyHint: {
+            title: '快捷打开',
+            searchInput: '搜索框',
+            switchSpace: '切换空间',
         }
     }
 };

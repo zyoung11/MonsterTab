@@ -2,6 +2,10 @@ import { useState, useMemo, useCallback, lazy, Suspense, useEffect, useRef } fro
 import { DockItem } from './shared/types';
 import { SEARCH_ENGINES } from './features/search/constants/searchEngines';
 import { useDockData, useDockUI, useDockDrag } from './features/dock/context/DockContext';
+import { useThemeData } from './features/theme/context/ThemeContext';
+import { useKeyHint } from './features/keyboard/hooks/useKeyHint';
+import { KeyHintOverlay } from './features/keyboard/components/KeyHintOverlay';
+import { SWITCH_SPACE_EVENT } from './shared/constants/events';
 import { DockLayoutContainer } from './features/dock/components/DockLayoutContainer';
 import { Editor } from './features/editor/components/Editor/Editor';
 import { Settings } from './features/settings/components/Settings/Settings';
@@ -99,6 +103,49 @@ function App() {
 
   // 自动同步：每次新标签页打开时检测云端更新
   useAutoSync();
+
+  const { openInNewTab } = useThemeData();
+
+  const hintItems = useMemo(() => {
+    if (openFolderId) {
+      const folder = dockItems.find((item) => item.id === openFolderId);
+      return (folder?.items ?? []).filter((item) => item.url);
+    }
+    return dockItems;
+  }, [openFolderId, dockItems]);
+
+  /**
+   * 触发快捷目标，文件夹打开文件夹面板，网站打开链接
+   */
+  const handleHintOpenItem = useCallback((item: DockItem) => {
+    if (!openFolderId && item.type === 'folder') {
+      const index = dockItems.findIndex((candidate) => candidate.id === item.id);
+      const wrappers = document.querySelectorAll('[data-dock-item-wrapper="true"]');
+      const rect = wrappers[index]?.getBoundingClientRect() ?? null;
+      setOpenFolderId(item.id);
+      setFolderAnchor(rect);
+      return;
+    }
+    if (item.url) {
+      window.open(item.url, openInNewTab ? '_blank' : '_self');
+    }
+  }, [openFolderId, dockItems, openInNewTab, setOpenFolderId, setFolderAnchor]);
+
+  const handleHintFocusSearch = useCallback(() => {
+    document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();
+  }, []);
+
+  const handleHintSwitchSpace = useCallback(() => {
+    window.dispatchEvent(new CustomEvent(SWITCH_SPACE_EVENT));
+  }, []);
+
+  const { isHintOpen, entries } = useKeyHint({
+    items: hintItems,
+    disabled: isAddEditModalOpen || isSearchEngineModalOpen || isSettingsModalOpen || isSyncModalOpen || isBatchImportOpen,
+    onOpenItem: handleHintOpenItem,
+    onFocusSearch: handleHintFocusSearch,
+    onSwitchSpace: handleHintSwitchSpace,
+  });
 
   // ============================================================================
   // 性能优化: 使用 RAF 节流 + 状态变化检测，减少 mousemove 期间的重渲染
@@ -394,6 +441,10 @@ function App() {
           />
         </Suspense>
       )}
+      <KeyHintOverlay
+        isOpen={isHintOpen}
+        entries={entries}
+      />
     </div>
   );
 }

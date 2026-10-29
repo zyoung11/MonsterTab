@@ -112,6 +112,7 @@ export function DockNavigator({
     return (
         <div
             className={`${styles.navigator} ${disabled ? styles.disabled : ''}`}
+            data-space-switch="true"
             onClick={handleClick}
             onMouseDown={handleMouseDownWrapper}
             onContextMenu={handleContextMenu}
