@@ -21,25 +21,30 @@ export const SuggestionsList: React.FC<SuggestionsListProps> = ({
     anchorRect,
 }) => {
     const listRef = useRef<HTMLUListElement>(null);
+    const hasEnteredRef = useRef(false);
     const [position, setPosition] = useState<React.CSSProperties>({});
 
     useEffect(() => {
         if (anchorRect) {
+            const openDownward = window.innerHeight - anchorRect.bottom >= 320;
             setPosition({
                 position: 'fixed',
                 left: `${anchorRect.left}px`,
-                bottom: `${window.innerHeight - anchorRect.top}px`,
                 width: `${anchorRect.width}px`,
+                ...(openDownward
+                    ? { top: `${anchorRect.bottom}px`, transformOrigin: 'top center', flexDirection: 'column' }
+                    : { bottom: `${window.innerHeight - anchorRect.top}px`, transformOrigin: 'bottom center', flexDirection: 'column-reverse' }),
             });
         }
     }, [anchorRect]);
 
     // 入场动画
     useEffect(() => {
-        if (listRef.current && !isExiting) {
+        if (listRef.current && !isExiting && anchorRect && !hasEnteredRef.current) {
+            hasEnteredRef.current = true;
             scaleFadeIn(listRef.current);
         }
-    }, []);
+    }, [anchorRect, isExiting]);
 
     // 出场动画
     useEffect(() => {

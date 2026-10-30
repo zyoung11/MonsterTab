@@ -2,6 +2,15 @@
  * 布局常量 - 统一管理 Dock 和 Folder 的尺寸、间距、阈值
  */
 
+import type { SpaceSwitchSpeed } from '@/features/theme/context/ThemeContext';
+
+/** 空间切换动画速度系数 */
+export const SPACE_SWITCH_SPEED_FACTOR: Record<SpaceSwitchSpeed, number> = {
+    fast: 0.5,
+    normal: 1,
+    slow: 1.6,
+};
+
 // ============================================================================
 // Dock 布局
 // ============================================================================

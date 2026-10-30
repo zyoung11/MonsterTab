@@ -39,17 +39,21 @@ interface AppConfig {
   gradient: string | null;
   solidGradient: string | null;
   openInNewTab: boolean;
+  showDock: boolean;
+  spaceSwitchSpeed: 'fast' | 'normal' | 'slow';
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  theme: 'light',
-  followSystem: true,
-  dockPosition: 'bottom',
+  theme: 'default',
+  followSystem: false,
+  dockPosition: 'center',
   iconSize: 'large',
   texture: 'point',
-  gradient: null,
+  gradient: 'gradient-1',
   solidGradient: null,
   openInNewTab: true,
+  showDock: false,
+  spaceSwitchSpeed: 'fast',
 };
 
 // ============================================================================
@@ -219,6 +223,22 @@ export const storage = {
 
   saveOpenInNewTab(openInNewTab: boolean): void {
     this.updateConfig({ openInNewTab });
+  },
+
+  getShowDock(): boolean {
+    return this.getConfig().showDock;
+  },
+
+  saveShowDock(showDock: boolean): void {
+    this.updateConfig({ showDock });
+  },
+
+  getSpaceSwitchSpeed(): 'fast' | 'normal' | 'slow' {
+    return this.getConfig().spaceSwitchSpeed;
+  },
+
+  saveSpaceSwitchSpeed(spaceSwitchSpeed: 'fast' | 'normal' | 'slow'): void {
+    this.updateConfig({ spaceSwitchSpeed });
   },
 
   // ==========================================================================

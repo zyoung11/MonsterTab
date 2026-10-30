@@ -2,9 +2,21 @@ import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import { KeyHintEntry } from '../types';
 import styles from './KeyHintOverlay.module.css';
 
+/**
+ * 判断元素是否真实可见，包括透明度和祖先隐藏
+ */
+function isElementVisible(el: Element): boolean {
+    const checker = el as Element & { checkVisibility?: (options?: { checkOpacity?: boolean; checkVisibilityCSS?: boolean }) => boolean };
+    if (typeof checker.checkVisibility === 'function') {
+        return checker.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true });
+    }
+    return true;
+}
+
 interface HintTarget {
     key: string;
     selector: string;
+    hideWhenTargetHidden: boolean;
 }
 
 interface KeyHintOverlayProps {
@@ -21,11 +33,11 @@ export const KeyHintOverlay: React.FC<KeyHintOverlayProps> = ({ isOpen, entries 
 
     const targets = useMemo<HintTarget[]>(() => {
         const list: HintTarget[] = [
-            { key: 'Space', selector: '[data-search-input]' },
-            { key: 'Tab', selector: '[data-space-switch]' },
+            { key: 'Space', selector: '[data-search-input]', hideWhenTargetHidden: false },
+            { key: 'Tab', selector: '[data-space-switch]', hideWhenTargetHidden: true },
         ];
         for (const entry of entries) {
-            list.push({ key: entry.key, selector: `[data-item-id="${entry.item.id}"]` });
+            list.push({ key: entry.key, selector: `[data-item-id="${entry.item.id}"]`, hideWhenTargetHidden: false });
         }
         return list;
     }, [entries]);
@@ -42,8 +54,10 @@ export const KeyHintOverlay: React.FC<KeyHintOverlayProps> = ({ isOpen, entries 
                     const span = spans[i];
                     if (!span) continue;
                     const el = document.querySelector(targets[i].selector);
-                    if (el) {
-                        const rect = el.getBoundingClientRect();
+                    const rect = el?.getBoundingClientRect();
+                    const targetVisible = !!el && !!rect && rect.width > 0 && rect.height > 0 &&
+                        (!targets[i].hideWhenTargetHidden || isElementVisible(el));
+                    if (targetVisible && rect) {
                         span.style.display = '';
                         span.style.left = `${Math.round(rect.left)}px`;
                         span.style.top = `${Math.round(rect.top)}px`;

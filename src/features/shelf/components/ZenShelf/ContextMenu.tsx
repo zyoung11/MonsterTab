@@ -11,6 +11,7 @@ import editIcon from '@/assets/icons/edit.svg';
 import copyIcon from '@/assets/icons/copy.svg';
 import settingsIcon from '@/assets/icons/setting2.svg';
 import pinIcon from '@/assets/icons/pin.svg';
+import monitorIcon from '@/assets/icons/monitor.svg';
 
 // ============================================================================
 // ContextMenu Component - Right-click context menu
@@ -34,6 +35,8 @@ interface ContextMenuProps {
     onExportImage?: () => void;
     onExportImageSticker?: () => void;
     onOpenSettings?: () => void;
+    showDock?: boolean;
+    onToggleDock?: () => void;
     onClearAllStickers?: () => void;
     isPinned?: boolean;
     onTogglePin?: () => void;
@@ -56,6 +59,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
     onExportImage,
     onExportImageSticker,
     onOpenSettings,
+    showDock,
+    onToggleDock,
     onClearAllStickers,
     isPinned,
     onTogglePin,
@@ -169,6 +174,10 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
                             <button className={styles.menuItem} onClick={() => { onToggleEditMode(); onClose(); }}>
                                 <span className={styles.menuIcon} style={{ WebkitMaskImage: `url(${editIcon})`, maskImage: `url(${editIcon})` }} />
                                 <span>{isEditMode ? t.contextMenu.exitEditMode : t.contextMenu.editMode}</span>
+                            </button>
+                            <button className={styles.menuItem} onClick={() => { onToggleDock?.(); onClose(); }}>
+                                <span className={styles.menuIcon} style={{ WebkitMaskImage: `url(${monitorIcon})`, maskImage: `url(${monitorIcon})` }} />
+                                <span>{showDock ? t.contextMenu.hideDock : t.contextMenu.showDock}</span>
                             </button>
                             <button className={styles.menuItem} onClick={() => { onOpenSettings?.(); onClose(); }}>
                                 <span className={styles.menuIcon} style={{ WebkitMaskImage: `url(${settingsIcon})`, maskImage: `url(${settingsIcon})` }} />

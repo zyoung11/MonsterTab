@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { useDockUI } from '@/features/dock/context/DockContext';
+import { useTheme } from '@/features/theme/context/ThemeContext';
 import { useZenShelf } from '@/features/shelf/context/ZenShelfContext';
 import { LinkCardMetadata, Sticker, IMAGE_MAX_WIDTH } from '@/shared/types';
 import { compressStickerImageToBlob } from '@/features/theme/utils/imageCompression';
@@ -65,6 +66,7 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { stickers, selectedStickerId, addSticker, updateSticker, deleteSticker, selectSticker, bringToTop } = useZenShelf();
     const { isEditMode, setIsEditMode } = useDockUI();
+    const { showDock, setShowDock } = useTheme();
     const { t } = useLanguage();
     const [batchSelectedStickerIds, setBatchSelectedStickerIds] = useState<string[]>([]);
     const batchDragStartRef = useRef<Map<string, { x: number; y: number }>>(new Map());
@@ -541,6 +543,8 @@ export const ZenShelf: React.FC<ZenShelfProps> = ({ onOpenSettings }) => {
                         y={contextMenu.y}
                         type={contextMenu.type}
                         stickerId={contextMenu.stickerId}
+                        showDock={showDock}
+                        onToggleDock={() => setShowDock(!showDock)}
                         isImageSticker={activeContextMenuSticker?.type === 'image'}
                         onClose={() => setContextMenu(null)}
                         onAddSticker={() => {

@@ -12,7 +12,6 @@
     flex-direction: column-reverse;
     gap: 0;
     transform-origin: bottom center;
-    opacity: 0;
 }
 
 .suggestionItem {

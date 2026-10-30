@@ -142,6 +142,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
         setIconSize,
         openInNewTab,
         setOpenInNewTab,
+        showDock,
+        setShowDock,
+        spaceSwitchSpeed,
+        setSpaceSwitchSpeed,
     } = useTheme();
 
     const { language, setLanguage, t } = useLanguage();
@@ -559,6 +563,66 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                                     title={t.settings.openInCurrentTab}
                                 >
                                     {t.settings.openInCurrentTab}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={styles.layoutRow}>
+                            <span className={styles.layoutLabel}>{t.settings.showDock}</span>
+                            <div className={styles.layoutToggleGroup}>
+                                <div
+                                    className={styles.layoutHighlight}
+                                    style={{
+                                        transform: `translateX(${showDock ? 0 : 100}%)`,
+                                    }}
+                                />
+                                <button
+                                    className={styles.layoutToggleOption}
+                                    onClick={() => setShowDock(true)}
+                                    title={t.settings.on}
+                                >
+                                    {t.settings.on}
+                                </button>
+                                <button
+                                    className={styles.layoutToggleOption}
+                                    onClick={() => setShowDock(false)}
+                                    title={t.settings.off}
+                                >
+                                    {t.settings.off}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className={styles.layoutRow}>
+                            <span className={styles.layoutLabel}>{t.settings.switchSpeed}</span>
+                            <div className={styles.layoutToggleGroup}>
+                                <div
+                                    className={styles.layoutHighlight}
+                                    style={{
+                                        width: '33.333%',
+                                        transform: `translateX(${spaceSwitchSpeed === 'fast' ? 0 : spaceSwitchSpeed === 'normal' ? 100 : 200}%)`,
+                                    }}
+                                />
+                                <button
+                                    className={styles.layoutToggleOption}
+                                    onClick={() => setSpaceSwitchSpeed('fast')}
+                                    title={t.settings.fast}
+                                >
+                                    {t.settings.fast}
+                                </button>
+                                <button
+                                    className={styles.layoutToggleOption}
+                                    onClick={() => setSpaceSwitchSpeed('normal')}
+                                    title={t.settings.normal}
+                                >
+                                    {t.settings.normal}
+                                </button>
+                                <button
+                                    className={styles.layoutToggleOption}
+                                    onClick={() => setSpaceSwitchSpeed('slow')}
+                                    title={t.settings.slow}
+                                >
+                                    {t.settings.slow}
                                 </button>
                             </div>
                         </div>

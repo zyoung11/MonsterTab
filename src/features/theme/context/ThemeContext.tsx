@@ -5,12 +5,14 @@ import { useWallpaperStorage } from '@/features/theme/hooks/useWallpaperStorage'
 import { db } from '@/shared/utils/db';
 import { GRADIENT_PRESETS } from '@/features/theme/constants/gradients';
 import { generateTextureDataUrl, getTextureSize, type TextureId } from '@/features/theme/constants/textures';
+import { SPACE_SWITCH_SPEED_FACTOR } from '@/shared/constants/layout';
 import { getTextureColorFromBackground } from '@/features/theme/utils/colorUtils';
 
 export type Theme = 'default' | 'light' | 'dark';
 export type Texture = TextureId;
 export type DockPosition = 'center' | 'bottom';
 export type IconSize = 'large' | 'small';
+export type SpaceSwitchSpeed = 'fast' | 'normal' | 'slow';
 
 export const DEFAULT_THEME_COLORS = {
     light: '#f1f1f1',
@@ -37,6 +39,8 @@ interface ThemeDataContextType {
     dockPosition: DockPosition;
     iconSize: IconSize;
     openInNewTab: boolean;
+    showDock: boolean;
+    spaceSwitchSpeed: SpaceSwitchSpeed;
 }
 
 const ThemeDataContext = createContext<ThemeDataContextType | undefined>(undefined);
@@ -56,6 +60,8 @@ interface ThemeActionsContextType {
     setDockPosition: (position: DockPosition) => void;
     setIconSize: (size: IconSize) => void;
     setOpenInNewTab: (openInNewTab: boolean) => void;
+    setShowDock: (show: boolean) => void;
+    setSpaceSwitchSpeed: (speed: SpaceSwitchSpeed) => void;
 }
 
 const ThemeActionsContext = createContext<ThemeActionsContextType | undefined>(undefined);
@@ -206,6 +212,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return storage.getOpenInNewTab();
     });
 
+    const [showDock, setShowDockState] = useState<boolean>(() => {
+        return storage.getShowDock();
+    });
+
+    const [spaceSwitchSpeed, setSpaceSwitchSpeedState] = useState<SpaceSwitchSpeed>(() => {
+        return storage.getSpaceSwitchSpeed();
+    });
+
     // 计算主题：如果启用了 followSystem，则使用系统主题
     const theme = followSystem ? systemTheme : manualTheme;
     const isDefaultTheme = manualTheme === 'default' && !followSystem;
@@ -325,6 +339,16 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         storage.saveOpenInNewTab(open);
     }, []);
 
+    const setShowDock = useCallback((show: boolean) => {
+        setShowDockState(show);
+        storage.saveShowDock(show);
+    }, []);
+
+    const setSpaceSwitchSpeed = useCallback((speed: SpaceSwitchSpeed) => {
+        setSpaceSwitchSpeedState(speed);
+        storage.saveSpaceSwitchSpeed(speed);
+    }, []);
+
     // 将主题应用到文档
     useEffect(() => {
         document.documentElement.setAttribute('data-theme', theme);
@@ -441,6 +465,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
         // 设置图标大小 CSS 变量
         root.style.setProperty('--icon-size', iconSize === 'small' ? '52px' : '64px');
+        const speedFactor = SPACE_SWITCH_SPEED_FACTOR[spaceSwitchSpeed];
+        root.style.setProperty('--stagger-step-out', `${40 * speedFactor}ms`);
+        root.style.setProperty('--stagger-step', `${15 * speedFactor}ms`);
         // 动态调整图标圆角：支持超椭圆曲线的浏览器放大 1.5 倍
         // 不支持 corner-shape 的浏览器（Firefox/Safari）使用原始值回退
         const supportsSuperellipse = CSS.supports('corner-shape: superellipse(1.5)');
@@ -450,7 +477,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 ? (supportsSuperellipse ? '18px' : '12px')
                 : (supportsSuperellipse ? '24px' : '16px')
         );
-    }, [backgroundValue, backgroundBaseValue, backgroundBlendMode, isDefaultTheme, iconSize, texture, wallpaper]);
+    }, [backgroundValue, backgroundBaseValue, backgroundBlendMode, isDefaultTheme, iconSize, texture, wallpaper, spaceSwitchSpeed]);
 
     // ========================================================================
     // 性能优化: 分离 data 和 actions context values
@@ -472,7 +499,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         dockPosition,
         iconSize,
         openInNewTab,
-    }), [theme, followSystem, wallpaper, wallpaperType, gradientId, solidId, texture, wallpaperId, backgroundValue, backgroundBaseValue, backgroundTextureValue, backgroundTextureTileSize, backgroundBlendMode, dockPosition, iconSize, openInNewTab]);
+        showDock,
+        spaceSwitchSpeed,
+    }), [theme, followSystem, wallpaper, wallpaperType, gradientId, solidId, texture, wallpaperId, backgroundValue, backgroundBaseValue, backgroundTextureValue, backgroundTextureTileSize, backgroundBlendMode, dockPosition, iconSize, openInNewTab, showDock, spaceSwitchSpeed]);
 
     const actionsValue: ThemeActionsContextType = useMemo(() => ({
         setTheme,
@@ -486,7 +515,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setDockPosition,
         setIconSize,
         setOpenInNewTab,
-    }), [setTheme, setFollowSystem, setWallpaper, uploadWallpaper, setGradientId, setSolidId, setTexture, setWallpaperId, setDockPosition, setIconSize, setOpenInNewTab]);
+        setShowDock,
+        setSpaceSwitchSpeed,
+    }), [setTheme, setFollowSystem, setWallpaper, uploadWallpaper, setGradientId, setSolidId, setTexture, setWallpaperId, setDockPosition, setIconSize, setOpenInNewTab, setShowDock, setSpaceSwitchSpeed]);
 
     return (
         <ThemeDataContext.Provider value={dataValue}>

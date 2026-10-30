@@ -81,3 +81,37 @@
   z-index: 100;
   /* Above stickers */
 }
+.dockShell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-height: 240px;
+  overflow: hidden;
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition:
+    max-height 0.28s var(--ease-smooth),
+    opacity 0.22s var(--ease-out-quint),
+    transform 0.28s var(--ease-out-quint),
+    margin-top 0.28s var(--ease-smooth);
+}
+
+.dockShellHidden {
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  margin-top: -14px;
+  pointer-events: none;
+  transition:
+    max-height 0.22s var(--ease-smooth),
+    opacity 0.14s var(--ease-in-quint),
+    transform 0.22s var(--ease-in-quint),
+    margin-top 0.22s var(--ease-smooth);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dockShell,
+  .dockShellHidden {
+    transition: none;
+  }
+}

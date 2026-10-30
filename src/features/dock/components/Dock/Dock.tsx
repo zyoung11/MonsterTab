@@ -13,6 +13,8 @@ import { useDragAndDrop } from '@/features/dock/hooks/useDragAndDrop';
 import { useDockDrag, useDockUI } from '@/features/dock/context/DockContext';
 import { useSpaces } from '@/features/spaces/context/SpacesContext';
 import { useLanguage } from '@/shared/context/LanguageContext';
+import { useThemeData } from '@/features/theme/context/ThemeContext';
+import { SPACE_SWITCH_SPEED_FACTOR } from '@/shared/constants/layout';
 import { generateFolderIcon } from '@/features/dock/utils/iconFetcher';
 import {
     EASE_SWIFT,
@@ -61,6 +63,7 @@ export const Dock: React.FC<DockProps> = ({
     const { folderPlaceholderActive } = useDockDrag();
     const { setIsEditMode } = useDockUI();
     const { t } = useLanguage();
+    const { spaceSwitchSpeed } = useThemeData();
 
     // Focus Spaces 集成
     const {
@@ -104,11 +107,11 @@ export const Dock: React.FC<DockProps> = ({
         setIsSwitching(true);
         setAnimationPhase('exiting');
 
-        // 动画时长配置（加快版）
-        const EXIT_DURATION = 120;    // 原 200ms
-        const ENTER_DURATION = 200;   // 原 350ms
-        const STAGGER_DELAY = 15;     // 原 30ms
-        const WIDTH_TRANSITION = 250; // 原 500ms
+        const speedFactor = SPACE_SWITCH_SPEED_FACTOR[spaceSwitchSpeed];
+        const EXIT_DURATION = 120 * speedFactor;
+        const ENTER_DURATION = 200 * speedFactor;
+        const STAGGER_DELAY = 15 * speedFactor;
+        const WIDTH_TRANSITION = 250 * speedFactor;
 
         // 退场动画结束后：先设为 hidden，再切换数据，最后触发入场动画
         setTimeout(() => {
@@ -166,7 +169,7 @@ export const Dock: React.FC<DockProps> = ({
                 }, enterDuration);
             }, 10);
         }, EXIT_DURATION);
-    }, [isSwitching, spaces.length, items.length, switchToNextSpace, setIsSwitching]);
+    }, [isSwitching, spaces.length, items.length, switchToNextSpace, setIsSwitching, spaceSwitchSpeed]);
 
     useEffect(() => {
         const handleSwitchSpaceEvent = () => handleSpaceSwitch();
@@ -204,10 +207,11 @@ export const Dock: React.FC<DockProps> = ({
         setIsSwitching(true);
         setAnimationPhase('exiting');
 
-        const EXIT_DURATION = 120;
-        const ENTER_DURATION = 200;
-        const STAGGER_DELAY = 15;
-        const WIDTH_TRANSITION = 250;
+        const speedFactor = SPACE_SWITCH_SPEED_FACTOR[spaceSwitchSpeed];
+        const EXIT_DURATION = 120 * speedFactor;
+        const ENTER_DURATION = 200 * speedFactor;
+        const STAGGER_DELAY = 15 * speedFactor;
+        const WIDTH_TRANSITION = 250 * speedFactor;
 
         setTimeout(() => {
             setAnimationPhase('hidden');
@@ -250,7 +254,7 @@ export const Dock: React.FC<DockProps> = ({
                 }, enterDuration);
             }, 10);
         }, EXIT_DURATION);
-    }, [isSwitching, currentSpace.id, items.length, switchToSpace, setIsSwitching]);
+    }, [isSwitching, currentSpace.id, items.length, switchToSpace, setIsSwitching, spaceSwitchSpeed]);
 
     const handleSpaceSwitcherClose = useCallback(() => {
         setShowSpaceSwitcher(false);

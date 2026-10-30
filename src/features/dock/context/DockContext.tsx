@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { DockItem, SearchEngine } from '@/shared/types';
 import { storage } from '@/shared/utils/storage';
 import { DEFAULT_SEARCH_ENGINE } from '@/features/search/constants/searchEngines';
-import { generateFolderIcon, fetchIcon } from '@/features/dock/utils/iconFetcher';
+import { generateFolderIcon } from '@/features/dock/utils/iconFetcher';
 import { useSpaces } from '@/features/spaces/context/SpacesContext';
 import { useThemeData } from '@/features/theme/context/ThemeContext';
 
@@ -113,129 +113,7 @@ export const DockProvider: React.FC<{ children: React.ReactNode }> = ({ children
         openFolderIdRef.current = openFolderId;
     }, [openFolderId]);
 
-    // 初始化: 只在首次安装时加载默认常用网站
-    // 注意：这个 ref 确保默认数据只加载一次，新建空间不会自动填充
-    const hasLoadedDefaultsRef = React.useRef(false);
-
     useEffect(() => {
-        // 只在首次运行且当前空间为空时初始化默认数据
-        // 使用 hasLoadedDefaultsRef 确保只加载一次
-        if (
-            !hasLoadedDefaultsRef.current &&
-            currentSpace.apps.length === 0 &&
-            dockItems.length === 0 &&
-            currentSpace.name === 'Main' // 只在 Main 空间为空时加载默认数据
-        ) {
-            hasLoadedDefaultsRef.current = true;
-
-            // 默认常用网站 - Main 空间
-            const defaults: DockItem[] = [
-                { id: 'bilibili', name: 'Bilibili', url: 'https://www.bilibili.com/', type: 'app' },
-                { id: 'notion', name: 'Notion', url: 'https://www.notion.so/', type: 'app' },
-                { id: 'notion-calendar', name: 'NotionCalendar', url: 'https://calendar.notion.so/', type: 'app' },
-                { id: 'gemini', name: 'Gemini', url: 'https://gemini.google.com/app', type: 'app' },
-                { id: 'jike', name: '即刻', url: 'https://web.okjike.com', type: 'app' },
-                { id: 'behance', name: 'Behance', url: 'https://www.behance.net/', type: 'app' },
-                { id: 'x', name: 'X', url: 'https://x.com/', type: 'app' },
-                { id: 'chatgpt', name: 'ChatGPT', url: 'https://chatgpt.com/', type: 'app' },
-                { id: 'claude', name: 'Claude', url: 'https://claude.ai/new', type: 'app' },
-            ];
-
-            // 为文件夹生成图标
-            defaults.forEach(item => {
-                if (item.type === 'folder' && item.items) {
-                    item.icon = generateFolderIcon(item.items);
-                }
-            });
-            setDockItems(defaults);
-
-            // 异步获取默认项目的图标
-            const fetchAllIcons = async (isMountedRef: React.MutableRefObject<boolean>) => {
-                type IconUpdateResult =
-                    | { id: string; icon: string; iconSmall?: boolean; isFolder?: undefined; subItems?: undefined }
-                    | { id: string; isFolder: true; subItems: { id: string; icon: string; iconSmall?: boolean }[]; icon?: undefined }
-                    | null;
-
-                // 并行获取图标，但不立即更新状态
-                const iconResults: IconUpdateResult[] = await Promise.all(defaults.map(async (item) => {
-                    if (item.type === 'folder' && item.items) {
-                        const updatedSubItems = await Promise.all(item.items.map(async (subItem) => {
-                            if (subItem.url) {
-                                try {
-                                    const result = await fetchIcon(subItem.url);
-                                    return { id: subItem.id, icon: result.url, iconSmall: result.iconSmall };
-                                } catch (e) {
-                                    return null;
-                                }
-                            }
-                            return null;
-                        }));
-
-                        // 过滤出获取到图标的项目
-                        const validSubUpdates: { id: string; icon: string; iconSmall?: boolean }[] = [];
-                        for (const item of updatedSubItems) {
-                            if (item !== null) {
-                                validSubUpdates.push(item);
-                            }
-                        }
-
-                        if (validSubUpdates.length > 0) {
-                            return {
-                                id: item.id,
-                                isFolder: true as const,
-                                subItems: validSubUpdates
-                            };
-                        }
-                    } else if (item.url) {
-                        try {
-                            const result = await fetchIcon(item.url);
-                            return { id: item.id, icon: result.url, iconSmall: result.iconSmall };
-                        } catch (e) {
-                            console.error(`Failed to fetch icon for ${item.name}`, e);
-                        }
-                    }
-                    return null;
-                }));
-
-                // 过滤有效结果
-                const updates = iconResults.filter((r): r is NonNullable<IconUpdateResult> => r !== null);
-
-                if (!isMountedRef.current) return;
-
-                // 安全更新: 仅更新图标，保留用户可能已做的操作（如排序、删除）
-                setDockItems(prev => {
-                    return prev.map(item => {
-                        const update = updates.find(u => u && u.id === item.id);
-                        if (!update) return item;
-
-                        if (update.isFolder && item.type === 'folder' && item.items) {
-                            // 更新文件夹内的图标
-                            const newSubItems = item.items.map(subItem => {
-                                const subUpdate = update.subItems?.find(su => su.id === subItem.id);
-                                return subUpdate ? { ...subItem, icon: subUpdate.icon, iconSmall: subUpdate.iconSmall } : subItem;
-                            });
-                            return {
-                                ...item,
-                                items: newSubItems,
-                                icon: generateFolderIcon(newSubItems) // 重新生成文件夹预览图
-                            };
-                        } else if (!update.isFolder && update.icon) {
-                            // 更新 App 图标
-                            return { ...item, icon: update.icon, iconSmall: update.iconSmall };
-                        }
-                        return item;
-                    });
-                });
-            };
-
-            const isMountedRef = { current: true };
-            fetchAllIcons(isMountedRef);
-
-            return () => {
-                isMountedRef.current = false;
-            };
-        }
-
         // 搜索引擎仍使用独立存储
         const savedEngine = storage.getSearchEngine();
         if (savedEngine) {

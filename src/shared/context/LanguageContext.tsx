@@ -30,6 +30,11 @@ interface Translations {
         importBackupConfirm: string;
         backupFailed: string;
         restoreFailed: string;
+        showDock: string;
+        switchSpeed: string;
+        fast: string;
+        normal: string;
+        slow: string;
     };
     search: {
         searchBy: string;
@@ -55,6 +60,8 @@ interface Translations {
         restore: string;
         pinSticker: string;
         unpinSticker: string;
+        showDock: string;
+        hideDock: string;
     };
     modal: {
         edit: string;
@@ -182,6 +189,11 @@ const translations: Record<Language, Translations> = {
             importBackupConfirm: 'Importing will overwrite current spaces, links, stickers, wallpaper, and settings. Continue?',
             backupFailed: 'Backup failed',
             restoreFailed: 'Restore failed',
+            showDock: 'Site bar',
+            switchSpeed: 'Space switch speed',
+            fast: 'Fast',
+            normal: 'Normal',
+            slow: 'Slow',
         },
         search: {
             searchBy: 'Search by',
@@ -207,6 +219,8 @@ const translations: Record<Language, Translations> = {
             restore: 'Restore',
             pinSticker: 'Pin Sticker',
             unpinSticker: 'Unpin Sticker',
+            showDock: 'Show site bar',
+            hideDock: 'Hide site bar',
         },
         modal: {
             edit: 'Edit',
@@ -332,6 +346,11 @@ const translations: Record<Language, Translations> = {
             importBackupConfirm: '导入会覆盖当前空间、链接、贴纸、壁纸和设置。确定继续吗？',
             backupFailed: '备份失败',
             restoreFailed: '恢复失败',
+            showDock: '网站框',
+            switchSpeed: '切换空间速度',
+            fast: '快',
+            normal: '中',
+            slow: '慢',
         },
         search: {
             searchBy: '使用',
@@ -357,6 +376,8 @@ const translations: Record<Language, Translations> = {
             restore: '还原',
             pinSticker: '固定贴纸',
             unpinSticker: '解除固定',
+            showDock: '显示网站框',
+            hideDock: '隐藏网站框',
         },
         modal: {
             edit: '编辑',

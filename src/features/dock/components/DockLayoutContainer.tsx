@@ -20,7 +20,7 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
     onItemAdd
 }) => {
     // 布局设置 (从全局拆分出来，避免变更导致 App 级别重渲染)
-    const { dockPosition, openInNewTab } = useThemeData();
+    const { dockPosition, openInNewTab, showDock } = useThemeData();
 
     // 数据层
     const {
@@ -135,23 +135,25 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
                 openInNewTab={openInNewTab}
                 containerStyle={dockWidth ? { width: `${dockWidth}px` } : undefined}
             />
-            <Dock
-                items={dockItems}
-                isEditMode={isEditMode}
-                onItemClick={handleItemClick}
-                onItemEdit={onItemEdit}
-                onItemDelete={handleItemDelete}
-                onItemAdd={onItemAdd}
-                onItemsReorder={handleItemsReorder}
-                onDropToFolder={handleDropOnFolder}
-                onDragToOpenFolder={handleDragToFolder}
-                onHoverOpenFolder={handleHoverOpenFolder}
-                onLongPressEdit={() => setIsEditMode(true)}
-                onWidthChange={(w) => setDockWidth(w)}
-                onDragStart={(item) => setDraggingItem(item)}
-                onDragEnd={() => setDraggingItem(null)}
-                externalDragItem={draggingItem}
-            />
+            <div className={`${styles.dockShell} ${showDock ? '' : styles.dockShellHidden}`}>
+                <Dock
+                    items={dockItems}
+                    isEditMode={isEditMode}
+                    onItemClick={handleItemClick}
+                    onItemEdit={onItemEdit}
+                    onItemDelete={handleItemDelete}
+                    onItemAdd={onItemAdd}
+                    onItemsReorder={handleItemsReorder}
+                    onDropToFolder={handleDropOnFolder}
+                    onDragToOpenFolder={handleDragToFolder}
+                    onHoverOpenFolder={handleHoverOpenFolder}
+                    onLongPressEdit={() => setIsEditMode(true)}
+                    onWidthChange={(w) => setDockWidth(w)}
+                    onDragStart={(item) => setDraggingItem(item)}
+                    onDragEnd={() => setDraggingItem(null)}
+                    externalDragItem={draggingItem}
+                />
+            </div>
         </div>
     );
 });
