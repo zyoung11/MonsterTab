@@ -1,5 +1,4 @@
 import { storage } from './storage';
-import { createZip, readJsonEntry, readZip, textEntry } from './zip';
 import { db, FaviconItem, WallpaperItem } from './db';
 import { FAVICON_PREFIX, getDomainFromRef } from '@/features/dock/utils/iconCache';
 import { DockItem, Sticker } from '@/shared/types';
@@ -7,33 +6,32 @@ import packageInfo from '../../../package.json';
 
 type BackupManifest = {
   type: 'monster-tab-backup';
-  version: 1;
+  version: 2;
   appVersion: string;
   exportedAt: string;
 };
 
-type AssetRef = {
-  path: string;
-  type: string;
+type AssetBlob = {
+  mime: string;
+  base64: string;
 };
 
-type FaviconAssetRef = AssetRef & {
+type FaviconAsset = AssetBlob & {
   domain: string;
   isFallback: boolean;
   iconSmall?: boolean;
   lastUpdated?: number;
 };
 
-type StickerImageAssetRef = AssetRef & {
+type StickerImageAsset = AssetBlob & {
   id: string;
 };
 
-type WallpaperAssetRef = AssetRef & {
+type WallpaperAsset = AssetBlob & {
   id: string;
   createdAt: number;
   wallpaperType?: 'image' | 'video';
-  thumbnailPath?: string;
-  thumbnailType?: string;
+  thumbnail?: AssetBlob;
 };
 
 type BackupData = {
@@ -46,33 +44,34 @@ type BackupData = {
   deletedStickers: Sticker[];
   stickerImagesMigrated: boolean;
   assets: {
-    favicons: FaviconAssetRef[];
-    stickerImages: StickerImageAssetRef[];
-    wallpaper: WallpaperAssetRef | null;
+    favicons: FaviconAsset[];
+    stickerImages: StickerImageAsset[];
+    wallpaper: WallpaperAsset | null;
   };
 };
 
-const blobToBytes = async (blob: Blob): Promise<Uint8Array> => {
-  return new Uint8Array(await blob.arrayBuffer());
+type BackupFile = BackupManifest & {
+  data: BackupData;
 };
 
-const bytesToBlobPart = (bytes: Uint8Array): ArrayBuffer => {
-  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+const blobToBase64 = async (blob: Blob): Promise<string> => {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 };
 
-const extensionFromType = (type: string, fallback = 'bin'): string => {
-  if (type.includes('png')) return 'png';
-  if (type.includes('jpeg') || type.includes('jpg')) return 'jpg';
-  if (type.includes('webp')) return 'webp';
-  if (type.includes('gif')) return 'gif';
-  if (type.includes('svg')) return 'svg';
-  if (type.includes('mp4')) return 'mp4';
-  if (type.includes('webm')) return 'webm';
-  if (type.includes('icon')) return 'ico';
-  return fallback;
+const base64ToBlob = (base64: string, mime: string): Blob => {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mime });
 };
-
-const safeName = (value: string): string => value.replace(/[^a-zA-Z0-9._-]/g, '_');
 
 const collectFaviconDomains = (items: DockItem[], domains = new Set<string>()): Set<string> => {
   for (const item of items) {
@@ -114,10 +113,9 @@ export async function exportFullBackup(): Promise<void> {
   const stickers = storage.getStickers();
   const deletedStickers = storage.getDeletedStickers();
 
-  const entries: { path: string; data: Uint8Array }[] = [];
-  const faviconAssets: FaviconAssetRef[] = [];
-  const stickerImageAssets: StickerImageAssetRef[] = [];
-  let wallpaperAsset: WallpaperAssetRef | null = null;
+  const faviconAssets: FaviconAsset[] = [];
+  const stickerImageAssets: StickerImageAsset[] = [];
+  let wallpaperAsset: WallpaperAsset | null = null;
 
   const faviconDomains = new Set<string>();
   for (const space of spaces.spaces) {
@@ -128,13 +126,10 @@ export async function exportFullBackup(): Promise<void> {
     const item = await db.getFavicon(domain);
     if (!item?.data) continue;
 
-    const ext = extensionFromType(item.data.type, 'ico');
-    const path = `assets/favicons/${safeName(domain)}.${ext}`;
-    entries.push({ path, data: await blobToBytes(item.data) });
     faviconAssets.push({
-      path,
       domain,
-      type: item.data.type || 'image/png',
+      mime: item.data.type || 'image/png',
+      base64: await blobToBase64(item.data),
       isFallback: item.isFallback,
       iconSmall: item.iconSmall,
       lastUpdated: item.lastUpdated,
@@ -148,80 +143,75 @@ export async function exportFullBackup(): Promise<void> {
     const item = await db.getStickerImage(id);
     if (!item?.data) continue;
 
-    const ext = extensionFromType(item.data.type, 'png');
-    const path = `assets/stickers/${safeName(id)}.${ext}`;
-    entries.push({ path, data: await blobToBytes(item.data) });
-    stickerImageAssets.push({ path, id, type: item.data.type || 'image/png' });
+    stickerImageAssets.push({
+      id,
+      mime: item.data.type || 'image/png',
+      base64: await blobToBase64(item.data),
+    });
   }
 
   if (wallpaperId) {
     const item = await db.get(wallpaperId);
     if (item?.data) {
-      const ext = extensionFromType(item.data.type, item.type === 'video' ? 'mp4' : 'png');
-      const path = `assets/wallpaper/${safeName(item.id)}.${ext}`;
-      entries.push({ path, data: await blobToBytes(item.data) });
-
-      let thumbnailPath: string | undefined;
-      let thumbnailType: string | undefined;
+      let thumbnail: AssetBlob | undefined;
       if (item.thumbnail) {
-        thumbnailType = item.thumbnail.type || 'image/png';
-        thumbnailPath = `assets/wallpaper/${safeName(item.id)}-thumb.${extensionFromType(thumbnailType, 'png')}`;
-        entries.push({ path: thumbnailPath, data: await blobToBytes(item.thumbnail) });
+        thumbnail = {
+          mime: item.thumbnail.type || 'image/png',
+          base64: await blobToBase64(item.thumbnail),
+        };
       }
 
       wallpaperAsset = {
-        path,
         id: item.id,
-        type: item.data.type || 'application/octet-stream',
+        mime: item.data.type || 'application/octet-stream',
+        base64: await blobToBase64(item.data),
         createdAt: item.createdAt,
         wallpaperType: item.type,
-        thumbnailPath,
-        thumbnailType,
+        thumbnail,
       };
     }
   }
 
-  const manifest: BackupManifest = {
+  const backup: BackupFile = {
     type: 'monster-tab-backup',
-    version: 1,
+    version: 2,
     appVersion: packageInfo.version,
     exportedAt: new Date().toISOString(),
-  };
-
-  const data: BackupData = {
-    spaces,
-    config,
-    searchEngine,
-    wallpaperId,
-    language: localStorage.getItem('app_language'),
-    stickers,
-    deletedStickers,
-    stickerImagesMigrated: storage.isStickerImagesMigrated(),
-    assets: {
-      favicons: faviconAssets,
-      stickerImages: stickerImageAssets,
-      wallpaper: wallpaperAsset,
+    data: {
+      spaces,
+      config,
+      searchEngine,
+      wallpaperId,
+      language: localStorage.getItem('app_language'),
+      stickers,
+      deletedStickers,
+      stickerImagesMigrated: storage.isStickerImagesMigrated(),
+      assets: {
+        favicons: faviconAssets,
+        stickerImages: stickerImageAssets,
+        wallpaper: wallpaperAsset,
+      },
     },
   };
 
-  const zip = createZip([
-    textEntry('manifest.json', manifest),
-    textEntry('data.json', data),
-    ...entries,
-  ]);
-
+  const json = new Blob([JSON.stringify(backup)], { type: 'application/json' });
   const date = new Date().toISOString().slice(0, 10);
-  downloadBlob(zip, `monster-tab-backup-${date}.zip`);
+  downloadBlob(json, `monster-tab-backup-${date}.json`);
 }
 
 export async function importFullBackup(file: File): Promise<void> {
-  const entries = await readZip(file);
-  const manifest = readJsonEntry<BackupManifest>(entries, 'manifest.json');
-  const data = readJsonEntry<BackupData>(entries, 'data.json');
-
-  if (manifest.type !== 'monster-tab-backup' || manifest.version !== 1) {
+  let backup: BackupFile;
+  try {
+    backup = JSON.parse(await file.text());
+  } catch {
     throw new Error('Unsupported backup file');
   }
+
+  if (backup.type !== 'monster-tab-backup' || backup.version !== 2) {
+    throw new Error('Unsupported backup file');
+  }
+
+  const data = backup.data;
   if (!data.spaces?.spaces || !Array.isArray(data.spaces.spaces)) {
     throw new Error('Invalid backup data');
   }
@@ -235,11 +225,9 @@ export async function importFullBackup(file: File): Promise<void> {
   }
 
   for (const asset of data.assets?.favicons || []) {
-    const bytes = entries.get(asset.path);
-    if (!bytes) continue;
     const item: FaviconItem = {
       domain: asset.domain,
-      data: new Blob([bytesToBlobPart(bytes)], { type: asset.type || 'image/png' }),
+      data: base64ToBlob(asset.base64, asset.mime || 'image/png'),
       isFallback: asset.isFallback,
       iconSmall: asset.iconSmall,
       lastUpdated: asset.lastUpdated,
@@ -248,35 +236,26 @@ export async function importFullBackup(file: File): Promise<void> {
   }
 
   for (const asset of data.assets?.stickerImages || []) {
-    const bytes = entries.get(asset.path);
-    if (!bytes) continue;
     await db.saveStickerImage({
       id: asset.id,
-      data: new Blob([bytesToBlobPart(bytes)], { type: asset.type || 'image/png' }),
+      data: base64ToBlob(asset.base64, asset.mime || 'image/png'),
     });
   }
 
   if (data.assets?.wallpaper) {
     const asset = data.assets.wallpaper;
-    const bytes = entries.get(asset.path);
-    if (bytes) {
-      let thumbnail: Blob | undefined;
-      if (asset.thumbnailPath) {
-        const thumbnailBytes = entries.get(asset.thumbnailPath);
-        if (thumbnailBytes) {
-          thumbnail = new Blob([bytesToBlobPart(thumbnailBytes)], { type: asset.thumbnailType || 'image/png' });
-        }
-      }
+    const thumbnail = asset.thumbnail
+      ? base64ToBlob(asset.thumbnail.base64, asset.thumbnail.mime || 'image/png')
+      : undefined;
 
-      const item: WallpaperItem = {
-        id: asset.id,
-        data: new Blob([bytesToBlobPart(bytes)], { type: asset.type || 'application/octet-stream' }),
-        thumbnail,
-        createdAt: asset.createdAt || Date.now(),
-        type: asset.wallpaperType,
-      };
-      await db.save(item);
-    }
+    const item: WallpaperItem = {
+      id: asset.id,
+      data: base64ToBlob(asset.base64, asset.mime || 'application/octet-stream'),
+      thumbnail,
+      createdAt: asset.createdAt || Date.now(),
+      type: asset.wallpaperType,
+    };
+    await db.save(item);
   }
 
   storage.saveSpaces(data.spaces);

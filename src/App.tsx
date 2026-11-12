@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, lazy, Suspense, useEffect, useRef } from 'react';
 import { DockItem } from './shared/types';
-import { SEARCH_ENGINES } from './features/search/constants/searchEngines';
+import { filterEnabledEngines } from './features/search/constants/searchEngines';
 import { useDockData, useDockUI, useDockDrag } from './features/dock/context/DockContext';
 import { useThemeData } from './features/theme/context/ThemeContext';
 import { useKeyHint } from './features/keyboard/hooks/useKeyHint';
@@ -104,7 +104,9 @@ function App() {
   // 自动同步：每次新标签页打开时检测云端更新
   useAutoSync();
 
-  const { openInNewTab } = useThemeData();
+  const { openInNewTab, enabledSearchEngines } = useThemeData();
+
+  const enabledEngines = useMemo(() => filterEnabledEngines(enabledSearchEngines), [enabledSearchEngines]);
 
   const hintItems = useMemo(() => {
     if (openFolderId) {
@@ -303,9 +305,9 @@ function App() {
             setSearchEngineAnchor(rect);
             setIsSearchEngineModalOpen(true);
           }
-          const currentIndex = SEARCH_ENGINES.findIndex(e => e.id === selectedSearchEngine.id);
-          const nextIndex = (currentIndex + 1) % SEARCH_ENGINES.length;
-          setSelectedSearchEngine(SEARCH_ENGINES[nextIndex]);
+          const currentIndex = enabledEngines.findIndex(e => e.id === selectedSearchEngine.id);
+          const nextIndex = (currentIndex + 1) % enabledEngines.length;
+          setSelectedSearchEngine(enabledEngines[nextIndex]);
           if (searchEngineTabTimerRef.current) {
             clearTimeout(searchEngineTabTimerRef.current);
           }
@@ -398,7 +400,7 @@ function App() {
           <SearchEngineModal
             isOpen={isSearchEngineModalOpen}
             selectedEngine={selectedSearchEngine}
-            engines={SEARCH_ENGINES}
+            engines={enabledEngines}
             onClose={() => {
               setIsSearchEngineModalOpen(false);
               document.querySelector<HTMLInputElement>('[data-search-input]')?.focus();

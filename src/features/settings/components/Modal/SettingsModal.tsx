@@ -21,6 +21,8 @@ import { FAVICON_PREFIX, getDomainFromRef } from '@/features/dock/utils/iconCach
 import { normalizeUrl } from '@/shared/utils/url';
 import { db } from '@/shared/utils/db';
 import { DockItem } from '@/shared/types';
+import { useDockData } from '@/features/dock/context/DockContext';
+import { SEARCH_ENGINES } from '@/features/search/constants/searchEngines';
 
 
 interface SettingsModalProps {
@@ -146,10 +148,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
         setShowDock,
         spaceSwitchSpeed,
         setSpaceSwitchSpeed,
+        enabledSearchEngines,
+        setEnabledSearchEngines,
     } = useTheme();
 
     const { language, setLanguage, t } = useLanguage();
     const { currentSpace, updateSpaceApps } = useSpaces();
+    const { selectedSearchEngine, setSelectedSearchEngine } = useDockData();
+
+    const isEnabledEngine = (id: string) =>
+        enabledSearchEngines.length === 0 || enabledSearchEngines.includes(id);
+
+    const toggleSearchEngine = useCallback((id: string, enable: boolean) => {
+        const current = enabledSearchEngines.length === 0
+            ? SEARCH_ENGINES.map((engine) => engine.id)
+            : [...enabledSearchEngines];
+        if (enable) {
+            if (!current.includes(id)) current.push(id);
+        } else {
+            if (current.length <= 1) return;
+            const index = current.indexOf(id);
+            if (index >= 0) current.splice(index, 1);
+        }
+        setEnabledSearchEngines(current);
+        if (!current.includes(selectedSearchEngine.id)) {
+            const fallback = SEARCH_ENGINES.find((engine) => current.includes(engine.id));
+            if (fallback) setSelectedSearchEngine(fallback);
+        }
+    }, [enabledSearchEngines, selectedSearchEngine, setEnabledSearchEngines, setSelectedSearchEngine]);
 
     const systemTheme = useSystemTheme();
     const [isVisible, setIsVisible] = useState(isOpen);
@@ -631,6 +657,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                         <div className={styles.layoutRow}>
                             <span className={styles.layoutLabel}>{t.settings.suggestions}</span>
                             <PermissionToggle />
+                        </div>
+
+                        <div className={styles.engineGroup}>
+                            <span className={styles.layoutLabel}>{t.settings.searchEngines}</span>
+                            <div className={styles.engineChips}>
+                                {SEARCH_ENGINES.map((engine) => (
+                                    <button
+                                        key={engine.id}
+                                        className={`${styles.engineChip} ${isEnabledEngine(engine.id) ? styles.engineChipActive : ''}`}
+                                        onClick={() => toggleSearchEngine(engine.id, !isEnabledEngine(engine.id))}
+                                    >
+                                        {engine.name}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
 
                         {/* 批量刷新图标 */}

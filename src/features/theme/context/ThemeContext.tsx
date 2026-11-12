@@ -41,6 +41,7 @@ interface ThemeDataContextType {
     openInNewTab: boolean;
     showDock: boolean;
     spaceSwitchSpeed: SpaceSwitchSpeed;
+    enabledSearchEngines: string[];
 }
 
 const ThemeDataContext = createContext<ThemeDataContextType | undefined>(undefined);
@@ -62,6 +63,7 @@ interface ThemeActionsContextType {
     setOpenInNewTab: (openInNewTab: boolean) => void;
     setShowDock: (show: boolean) => void;
     setSpaceSwitchSpeed: (speed: SpaceSwitchSpeed) => void;
+    setEnabledSearchEngines: (ids: string[]) => void;
 }
 
 const ThemeActionsContext = createContext<ThemeActionsContextType | undefined>(undefined);
@@ -220,6 +222,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return storage.getSpaceSwitchSpeed();
     });
 
+    const [enabledSearchEngines, setEnabledSearchEnginesState] = useState<string[]>(() => {
+        return storage.getEnabledSearchEngines();
+    });
+
     // 计算主题：如果启用了 followSystem，则使用系统主题
     const theme = followSystem ? systemTheme : manualTheme;
     const isDefaultTheme = manualTheme === 'default' && !followSystem;
@@ -347,6 +353,11 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const setSpaceSwitchSpeed = useCallback((speed: SpaceSwitchSpeed) => {
         setSpaceSwitchSpeedState(speed);
         storage.saveSpaceSwitchSpeed(speed);
+    }, []);
+
+    const setEnabledSearchEngines = useCallback((ids: string[]) => {
+        setEnabledSearchEnginesState(ids);
+        storage.saveEnabledSearchEngines(ids);
     }, []);
 
     // 将主题应用到文档
@@ -501,7 +512,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         openInNewTab,
         showDock,
         spaceSwitchSpeed,
-    }), [theme, followSystem, wallpaper, wallpaperType, gradientId, solidId, texture, wallpaperId, backgroundValue, backgroundBaseValue, backgroundTextureValue, backgroundTextureTileSize, backgroundBlendMode, dockPosition, iconSize, openInNewTab, showDock, spaceSwitchSpeed]);
+        enabledSearchEngines,
+    }), [theme, followSystem, wallpaper, wallpaperType, gradientId, solidId, texture, wallpaperId, backgroundValue, backgroundBaseValue, backgroundTextureValue, backgroundTextureTileSize, backgroundBlendMode, dockPosition, iconSize, openInNewTab, showDock, spaceSwitchSpeed, enabledSearchEngines]);
 
     const actionsValue: ThemeActionsContextType = useMemo(() => ({
         setTheme,
@@ -517,7 +529,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setOpenInNewTab,
         setShowDock,
         setSpaceSwitchSpeed,
-    }), [setTheme, setFollowSystem, setWallpaper, uploadWallpaper, setGradientId, setSolidId, setTexture, setWallpaperId, setDockPosition, setIconSize, setOpenInNewTab, setShowDock, setSpaceSwitchSpeed]);
+        setEnabledSearchEngines,
+    }), [setTheme, setFollowSystem, setWallpaper, uploadWallpaper, setGradientId, setSolidId, setTexture, setWallpaperId, setDockPosition, setIconSize, setOpenInNewTab, setShowDock, setSpaceSwitchSpeed, setEnabledSearchEngines]);
 
     return (
         <ThemeDataContext.Provider value={dataValue}>

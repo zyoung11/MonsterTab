@@ -41,6 +41,7 @@ interface AppConfig {
   openInNewTab: boolean;
   showDock: boolean;
   spaceSwitchSpeed: 'fast' | 'normal' | 'slow';
+  enabledSearchEngines: string[];
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -52,8 +53,9 @@ const DEFAULT_CONFIG: AppConfig = {
   gradient: 'gradient-1',
   solidGradient: null,
   openInNewTab: true,
-  showDock: false,
+  showDock: true,
   spaceSwitchSpeed: 'fast',
+  enabledSearchEngines: [],
 };
 
 // ============================================================================
@@ -239,6 +241,14 @@ export const storage = {
 
   saveSpaceSwitchSpeed(spaceSwitchSpeed: 'fast' | 'normal' | 'slow'): void {
     this.updateConfig({ spaceSwitchSpeed });
+  },
+
+  getEnabledSearchEngines(): string[] {
+    return this.getConfig().enabledSearchEngines;
+  },
+
+  saveEnabledSearchEngines(enabledSearchEngines: string[]): void {
+    this.updateConfig({ enabledSearchEngines });
   },
 
   // ==========================================================================
