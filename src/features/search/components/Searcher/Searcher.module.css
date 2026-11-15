@@ -177,3 +177,15 @@
   white-space: nowrap;
   margin: 0;
 }
+.searchPulse {
+    animation: searchPulse 0.4s ease-out;
+}
+
+@keyframes searchPulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--blue-alpha-50);
+    }
+    100% {
+        box-shadow: 0 0 0 22px transparent;
+    }
+}

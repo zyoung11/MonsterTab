@@ -5,6 +5,7 @@ import { Searcher } from '@/features/search/components/Searcher/Searcher';
 import { Dock } from './Dock/Dock';
 import { DockItem } from '@/shared/types';
 import styles from '@/App.module.css';
+import { openLink, type LinkOrigin } from '@/shared/utils/openLink';
 
 interface DockLayoutContainerProps {
     onSearchEngineClick: (rect: DOMRect) => void;
@@ -86,7 +87,7 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
             setOpenFolderId(item.id);
             setFolderAnchor(rect ?? null);
         } else if (item.url) {
-            window.open(item.url, openInNewTab ? '_blank' : '_self');
+            openLink(item.url, openInNewTab, rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined);
         }
     }, [setOpenFolderId, setFolderAnchor, openInNewTab]);
 
@@ -100,7 +101,7 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
         onSearchEngineTab?.(anchorRect);
     }, [onSearchEngineTab]);
 
-    const handleSearch = useCallback((query: string) => {
+    const handleSearch = useCallback((query: string, origin?: LinkOrigin) => {
         if (selectedSearchEngine.id === 'default') {
             // @ts-ignore
             if (typeof chrome !== 'undefined' && chrome.search && chrome.search.query) {
@@ -108,14 +109,21 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
                 chrome.search.query({ text: query, disposition: 'CURRENT_TAB' });
                 return;
             }
-            window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, openInNewTab ? '_blank' : '_self');
+            openLink(`https://www.google.com/search?q=${encodeURIComponent(query)}`, openInNewTab, origin);
+            return;
+        }
+
+        if (selectedSearchEngine.id === 'url') {
+            const trimmed = query.trim();
+            const hasScheme = /^[\w+.-]+:\/\//.test(trimmed);
+            openLink(hasScheme ? trimmed : `https://${trimmed}`, openInNewTab, origin);
             return;
         }
 
         const searchUrl = selectedSearchEngine.url.includes('%s')
             ? selectedSearchEngine.url.replace('%s', encodeURIComponent(query))
             : `${selectedSearchEngine.url}${encodeURIComponent(query)}`;
-        window.open(searchUrl, openInNewTab ? '_blank' : '_self');
+        openLink(searchUrl, openInNewTab, origin);
     }, [selectedSearchEngine, openInNewTab]);
 
     return (

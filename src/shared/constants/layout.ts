@@ -4,7 +4,6 @@
 
 import type { SpaceSwitchSpeed } from '@/features/theme/context/ThemeContext';
 
-/** 空间切换动画速度系数 */
 export const SPACE_SWITCH_SPEED_FACTOR: Record<SpaceSwitchSpeed, number> = {
     fast: 0.5,
     normal: 1,

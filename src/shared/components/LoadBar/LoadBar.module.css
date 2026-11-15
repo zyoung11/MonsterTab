@@ -1,0 +1,28 @@
+.loadBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    overflow: hidden;
+    z-index: 9999;
+    pointer-events: none;
+}
+
+.loadBarFill {
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--blue-400), var(--white), var(--blue-500), transparent);
+    box-shadow: 0 0 22px var(--blue-alpha-50);
+    transform: translateX(-100%);
+    animation: loadBarSweep 0.7s var(--ease-out-quint);
+}
+
+@keyframes loadBarSweep {
+    from {
+        transform: translateX(-100%);
+    }
+    to {
+        transform: translateX(350%);
+    }
+}

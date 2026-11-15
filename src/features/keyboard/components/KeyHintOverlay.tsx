@@ -2,9 +2,6 @@ import React, { useLayoutEffect, useMemo, useRef } from 'react';
 import { KeyHintEntry } from '../types';
 import styles from './KeyHintOverlay.module.css';
 
-/**
- * 判断元素是否真实可见，包括透明度和祖先隐藏
- */
 function isElementVisible(el: Element): boolean {
     const checker = el as Element & { checkVisibility?: (options?: { checkOpacity?: boolean; checkVisibilityCSS?: boolean }) => boolean };
     if (typeof checker.checkVisibility === 'function') {
@@ -24,10 +21,6 @@ interface KeyHintOverlayProps {
     entries: KeyHintEntry[];
 }
 
-/**
- * 快捷打开角标覆盖层
- * 在目标元素左上角显示按键标记，每帧跟随目标位置，不拦截页面交互
- */
 export const KeyHintOverlay: React.FC<KeyHintOverlayProps> = ({ isOpen, entries }) => {
     const overlayRef = useRef<HTMLDivElement>(null);
 

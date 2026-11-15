@@ -31,14 +31,16 @@ export const SEARCH_ENGINES: SearchEngine[] = [
     name: 'Ecosia',
     url: 'https://www.ecosia.org/search?q=',
   },
+  {
+    id: 'url',
+    name: 'URL',
+    url: '',
+  },
 ];
 
 // 默认使用 Google 搜索引擎
 export const DEFAULT_SEARCH_ENGINE: SearchEngine = SEARCH_ENGINES.find(e => e.id === 'google')!;
 
-/**
- * 按启用列表过滤搜索引擎，空列表表示全部启用
- */
 export function filterEnabledEngines(enabled: string[], custom: SearchEngine[] = []): SearchEngine[] {
   const all = [...SEARCH_ENGINES, ...custom];
   if (enabled.length === 0) return all;

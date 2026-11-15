@@ -55,10 +55,6 @@ export function createDefaultSpace(name: string = '>_<', apps: DockItem[] = []):
     };
 }
 
-/**
- * 创建默认空间状态
- * 只包含一个空白空间
- */
 export function createDefaultSpacesState(initialApps: DockItem[] = []): SpacesState {
     const defaultSpace = createDefaultSpace('>_<', initialApps);
 

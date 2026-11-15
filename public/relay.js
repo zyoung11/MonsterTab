@@ -1,8 +1,5 @@
 const isGecko = /Firefox|Zen/.test(navigator.userAgent);
 
-/**
- * 在 Gecko 上用标签页替换保证页面获得键盘焦点，失败时按次数重试
- */
 function relayOnce(attempt) {
     const api = typeof browser !== 'undefined' ? browser : chrome;
     api.tabs.getCurrent().then((tab) => {
@@ -25,9 +22,6 @@ function relayOnce(attempt) {
     });
 }
 
-/**
- * 入口：Blink 立即跳转，Gecko 延迟执行标签页替换避开焦点流程
- */
 function relayStart() {
     if (!isGecko) {
         location.replace('index.html');

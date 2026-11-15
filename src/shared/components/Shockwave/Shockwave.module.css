@@ -1,0 +1,41 @@
+.shockLayer {
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.shockwave {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        transparent 12%,
+        var(--blue-alpha-40) 46%,
+        transparent 80%);
+    transform: translate(-50%, -50%);
+    animation: shockwaveExpand 0.9s var(--ease-out-quint) forwards;
+}
+
+.shockwaveSecond {
+    background: radial-gradient(circle,
+        transparent 18%,
+        var(--white-alpha-20) 52%,
+        transparent 82%);
+    animation-delay: 0.14s;
+}
+
+@keyframes shockwaveExpand {
+    from {
+        width: 40px;
+        height: 40px;
+        opacity: 0.9;
+    }
+    to {
+        width: 4000px;
+        height: 4000px;
+        opacity: 0;
+    }
+}

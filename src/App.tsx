@@ -5,7 +5,10 @@ import { useDockData, useDockUI, useDockDrag } from './features/dock/context/Doc
 import { useThemeData } from './features/theme/context/ThemeContext';
 import { useKeyHint } from './features/keyboard/hooks/useKeyHint';
 import { KeyHintOverlay } from './features/keyboard/components/KeyHintOverlay';
+import { LoadBar } from './shared/components/LoadBar/LoadBar';
+import { Shockwave } from './shared/components/Shockwave/Shockwave';
 import { SWITCH_SPACE_EVENT } from './shared/constants/events';
+import { openLink } from './shared/utils/openLink';
 import { DockLayoutContainer } from './features/dock/components/DockLayoutContainer';
 import { Editor } from './features/editor/components/Editor/Editor';
 import { Settings } from './features/settings/components/Settings/Settings';
@@ -129,7 +132,9 @@ function App() {
       return;
     }
     if (item.url) {
-      window.open(item.url, openInNewTab ? '_blank' : '_self');
+      const el = document.querySelector(`[data-item-id="${item.id}"]`);
+      const rect = el?.getBoundingClientRect();
+      openLink(item.url, openInNewTab, rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined);
     }
   }, [openFolderId, dockItems, openInNewTab, setOpenFolderId, setFolderAnchor]);
 
@@ -218,7 +223,9 @@ function App() {
 
   const handleFolderItemClick = useCallback((item: DockItem) => {
     if (item.url) {
-      window.open(item.url, '_blank'); // Temporary fallback, should be handled by DockLayoutContainer or openInNewTab value passed down
+      const el = document.querySelector(`[data-item-id="${item.id}"]`);
+      const rect = el?.getBoundingClientRect();
+      openLink(item.url, true, rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined);
     }
   }, []);
 
@@ -285,6 +292,8 @@ function App() {
         </defs>
       </svg>
       <Background />
+      <LoadBar />
+      <Shockwave />
       <ZenShelf onOpenSettings={(pos) => {
         // 直接使用传入的位置，不需要为了抵消 SettingsModal 的内部偏移而做运算
         const pseudoRect = { left: pos.x, top: pos.y, right: pos.x, bottom: pos.y, width: 0, height: 0, x: pos.x, y: pos.y, toJSON: () => ({}) } as DOMRect;

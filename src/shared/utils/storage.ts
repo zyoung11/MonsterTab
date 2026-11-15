@@ -1,6 +1,5 @@
 import { DockItem, SearchEngine, SpacesState, createDefaultSpacesState, Sticker } from '@/shared/types';
 
-/** 空间数据的 localStorage 键名 */
 export const SPACES_STORAGE_KEY = 'MonsterTab_spaces';
 
 const STORAGE_KEYS = {

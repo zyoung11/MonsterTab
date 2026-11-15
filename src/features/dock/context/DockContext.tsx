@@ -3,6 +3,7 @@ import { DockItem, SearchEngine } from '@/shared/types';
 import { storage } from '@/shared/utils/storage';
 import { DEFAULT_SEARCH_ENGINE } from '@/features/search/constants/searchEngines';
 import { generateFolderIcon } from '@/features/dock/utils/iconFetcher';
+import { openLink } from '@/shared/utils/openLink';
 import { useSpaces } from '@/features/spaces/context/SpacesContext';
 import { useThemeData } from '@/features/theme/context/ThemeContext';
 
@@ -508,7 +509,7 @@ export const useDock = (): DockContextType => {
             uiContext.setOpenFolderId(item.id);
             uiContext.setFolderAnchor(rect ?? null);
         } else if (item.url) {
-            window.open(item.url, openInNewTab ? '_blank' : '_self');
+            openLink(item.url, openInNewTab, rect ? { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 } : undefined);
         }
     }, [uiContext, openInNewTab]);
 

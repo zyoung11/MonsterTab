@@ -22,10 +22,6 @@ interface KeyHintResult {
     closeHint: () => void;
 }
 
-/**
- * 键盘快捷打开系统
- * 非输入状态下按 g 打开小框，按分配键触发目标，Esc 关闭
- */
 export function useKeyHint({ items, disabled, onOpenItem, onFocusSearch, onSwitchSpace }: UseKeyHintOptions): KeyHintResult {
     const [isHintOpen, setIsHintOpen] = useState(false);
 

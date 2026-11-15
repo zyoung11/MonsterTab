@@ -4,10 +4,11 @@ import styles from './Searcher.module.css';
 import { useSearchSuggestions } from '@/features/search/hooks/useSearchSuggestions';
 import { useLanguage } from '@/shared/context/LanguageContext';
 import { SuggestionsList } from './SuggestionsList';
+import { openLink, type LinkOrigin } from '@/shared/utils/openLink';
 
 interface SearcherProps {
   searchEngine: SearchEngine;
-  onSearch: (query: string) => void;
+  onSearch: (query: string, origin?: LinkOrigin) => void;
   onSearchEngineClick: (anchorRect: DOMRect) => void;
   onSearchEngineTab?: (anchorRect: DOMRect) => void;
   openInNewTab?: boolean;
@@ -24,6 +25,7 @@ export const Searcher: React.FC<SearcherProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const [isFocused, setIsFocused] = useState(false);
+  const [isPulsing, setIsPulsing] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const engineRef = useRef<HTMLParagraphElement>(null);
@@ -56,14 +58,20 @@ export const Searcher: React.FC<SearcherProps> = ({
 
   const handleSearch = (searchQuery: string) => {
     if (!searchQuery.trim()) return;
+    setIsPulsing(true);
+    window.setTimeout(() => setIsPulsing(false), 400);
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    const origin = containerRect
+        ? { x: containerRect.left + containerRect.width / 2, y: containerRect.top + containerRect.height / 2 }
+        : undefined;
 
     // 检查是否是 URL
     try {
       const url = new URL(searchQuery);
-      window.open(url.toString(), openInNewTab ? '_blank' : '_self');
+      openLink(url.toString(), openInNewTab, origin);
     } catch {
       // 不是 URL，进行搜索
-      onSearch(searchQuery);
+      onSearch(searchQuery, origin);
     }
     setQuery(''); // 可选：搜索后清空查询内容
     // 强制关闭建议列表
@@ -133,7 +141,7 @@ export const Searcher: React.FC<SearcherProps> = ({
   const { t } = useLanguage();
 
   return (
-    <header ref={containerRef} className={styles.searcher} style={containerStyle}>
+    <header ref={containerRef} data-shock-target="true" className={`${styles.searcher} ${isPulsing ? styles.searchPulse : ''}`} style={containerStyle}>
       {/* 建议列表 */}
       {shouldRender && suggestions.length > 0 && (
         <SuggestionsList
