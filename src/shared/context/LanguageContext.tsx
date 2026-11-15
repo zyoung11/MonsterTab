@@ -36,6 +36,9 @@ interface Translations {
         normal: string;
         slow: string;
         searchEngines: string;
+        engineName: string;
+        engineUrl: string;
+        add: string;
     };
     search: {
         searchBy: string;
@@ -196,6 +199,9 @@ const translations: Record<Language, Translations> = {
             normal: 'Normal',
             slow: 'Slow',
             searchEngines: 'Search providers',
+            engineName: 'Name',
+            engineUrl: 'Search URL with %s',
+            add: 'Add',
         },
         search: {
             searchBy: 'Search by',
@@ -354,6 +360,9 @@ const translations: Record<Language, Translations> = {
             normal: '中',
             slow: '慢',
             searchEngines: '搜索供应商',
+            engineName: '名称',
+            engineUrl: '搜索地址含 %s',
+            add: '添加',
         },
         search: {
             searchBy: '使用',

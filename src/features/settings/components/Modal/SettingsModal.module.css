@@ -510,13 +510,16 @@
 }
 
 .engineChips {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+    justify-content: center;
     width: 100%;
 }
 
 .engineChip {
+    flex: 1 1 calc(33.333% - 8px);
+    min-width: 90px;
     padding: 6px 12px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-small);
@@ -539,4 +542,54 @@
 .engineChipActive {
     opacity: 1;
     background: var(--color-bg-tertiary);
+}
+
+.engineChipAdd {
+    opacity: 0.75;
+    border-style: dashed;
+}
+
+.engineChipRemove {
+    margin-left: 6px;
+    opacity: 0.6;
+    font-size: 14px;
+    line-height: 1;
+}
+
+.engineChipRemove:hover {
+    opacity: 1;
+}
+
+.engineForm {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.engineInput {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-small);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-family: var(--font-family);
+    font-size: var(--font-size-small);
+    outline: none;
+}
+
+.engineInput:focus-visible {
+    border-color: var(--color-bg-tertiary);
+}
+
+.engineInput::placeholder {
+    color: var(--color-text-primary);
+    opacity: 0.4;
+}
+
+.engineFormActions {
+    display: flex;
+    gap: 8px;
 }

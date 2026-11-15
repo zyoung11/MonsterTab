@@ -104,9 +104,9 @@ function App() {
   // 自动同步：每次新标签页打开时检测云端更新
   useAutoSync();
 
-  const { openInNewTab, enabledSearchEngines } = useThemeData();
+  const { openInNewTab, enabledSearchEngines, customSearchEngines } = useThemeData();
 
-  const enabledEngines = useMemo(() => filterEnabledEngines(enabledSearchEngines), [enabledSearchEngines]);
+  const enabledEngines = useMemo(() => filterEnabledEngines(enabledSearchEngines, customSearchEngines), [enabledSearchEngines, customSearchEngines]);
 
   const hintItems = useMemo(() => {
     if (openFolderId) {

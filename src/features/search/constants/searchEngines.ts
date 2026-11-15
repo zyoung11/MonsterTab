@@ -39,8 +39,9 @@ export const DEFAULT_SEARCH_ENGINE: SearchEngine = SEARCH_ENGINES.find(e => e.id
 /**
  * 按启用列表过滤搜索引擎，空列表表示全部启用
  */
-export function filterEnabledEngines(enabled: string[]): SearchEngine[] {
-  if (enabled.length === 0) return SEARCH_ENGINES;
-  return SEARCH_ENGINES.filter((engine) => enabled.includes(engine.id));
+export function filterEnabledEngines(enabled: string[], custom: SearchEngine[] = []): SearchEngine[] {
+  const all = [...SEARCH_ENGINES, ...custom];
+  if (enabled.length === 0) return all;
+  return all.filter((engine) => enabled.includes(engine.id));
 }
 

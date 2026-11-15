@@ -112,7 +112,9 @@ export const DockLayoutContainer: React.FC<DockLayoutContainerProps> = React.mem
             return;
         }
 
-        const searchUrl = `${selectedSearchEngine.url}${encodeURIComponent(query)}`;
+        const searchUrl = selectedSearchEngine.url.includes('%s')
+            ? selectedSearchEngine.url.replace('%s', encodeURIComponent(query))
+            : `${selectedSearchEngine.url}${encodeURIComponent(query)}`;
         window.open(searchUrl, openInNewTab ? '_blank' : '_self');
     }, [selectedSearchEngine, openInNewTab]);
 

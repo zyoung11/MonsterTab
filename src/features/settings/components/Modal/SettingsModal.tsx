@@ -20,9 +20,9 @@ import { fetchAndProcessIcon } from '@/features/dock/utils/iconFetcher';
 import { FAVICON_PREFIX, getDomainFromRef } from '@/features/dock/utils/iconCache';
 import { normalizeUrl } from '@/shared/utils/url';
 import { db } from '@/shared/utils/db';
-import { DockItem } from '@/shared/types';
+import { DockItem, SearchEngine } from '@/shared/types';
 import { useDockData } from '@/features/dock/context/DockContext';
-import { SEARCH_ENGINES } from '@/features/search/constants/searchEngines';
+import { SEARCH_ENGINES, filterEnabledEngines } from '@/features/search/constants/searchEngines';
 
 
 interface SettingsModalProps {
@@ -150,6 +150,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
         setSpaceSwitchSpeed,
         enabledSearchEngines,
         setEnabledSearchEngines,
+        customSearchEngines,
+        addCustomSearchEngine,
+        removeCustomSearchEngine,
     } = useTheme();
 
     const { language, setLanguage, t } = useLanguage();
@@ -176,6 +179,38 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
             if (fallback) setSelectedSearchEngine(fallback);
         }
     }, [enabledSearchEngines, selectedSearchEngine, setEnabledSearchEngines, setSelectedSearchEngine]);
+
+    const allEngines = [...SEARCH_ENGINES, ...customSearchEngines];
+
+    const [showEngineForm, setShowEngineForm] = useState(false);
+    const [newEngineName, setNewEngineName] = useState('');
+    const [newEngineUrl, setNewEngineUrl] = useState('');
+
+    const handleAddEngine = useCallback(() => {
+        const name = newEngineName.trim();
+        const url = newEngineUrl.trim();
+        if (!name || !url) return;
+        const engine: SearchEngine = { id: `custom-${Date.now()}`, name, url };
+        addCustomSearchEngine(engine);
+        if (enabledSearchEngines.length > 0) {
+            setEnabledSearchEngines([...enabledSearchEngines, engine.id]);
+        }
+        setNewEngineName('');
+        setNewEngineUrl('');
+        setShowEngineForm(false);
+    }, [newEngineName, newEngineUrl, addCustomSearchEngine, enabledSearchEngines, setEnabledSearchEngines]);
+
+    const handleRemoveEngine = useCallback((id: string) => {
+        removeCustomSearchEngine(id);
+        const nextEnabled = enabledSearchEngines.filter((engineId) => engineId !== id);
+        if (enabledSearchEngines.length > 0) {
+            setEnabledSearchEngines(nextEnabled);
+        }
+        if (selectedSearchEngine.id === id) {
+            const fallback = filterEnabledEngines(nextEnabled, customSearchEngines.filter((engine) => engine.id !== id))[0];
+            if (fallback) setSelectedSearchEngine(fallback);
+        }
+    }, [removeCustomSearchEngine, enabledSearchEngines, setEnabledSearchEngines, selectedSearchEngine, customSearchEngines, setSelectedSearchEngine]);
 
     const systemTheme = useSystemTheme();
     const [isVisible, setIsVisible] = useState(isOpen);
@@ -662,16 +697,60 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, a
                         <div className={styles.engineGroup}>
                             <span className={styles.layoutLabel}>{t.settings.searchEngines}</span>
                             <div className={styles.engineChips}>
-                                {SEARCH_ENGINES.map((engine) => (
-                                    <button
-                                        key={engine.id}
-                                        className={`${styles.engineChip} ${isEnabledEngine(engine.id) ? styles.engineChipActive : ''}`}
-                                        onClick={() => toggleSearchEngine(engine.id, !isEnabledEngine(engine.id))}
-                                    >
-                                        {engine.name}
-                                    </button>
-                                ))}
+                                {allEngines.map((engine) => {
+                                    const isCustom = engine.id.startsWith('custom-');
+                                    return (
+                                        <button
+                                            key={engine.id}
+                                            className={`${styles.engineChip} ${isEnabledEngine(engine.id) ? styles.engineChipActive : ''}`}
+                                            onClick={() => toggleSearchEngine(engine.id, !isEnabledEngine(engine.id))}
+                                        >
+                                            {engine.name}
+                                            {isCustom && (
+                                                <span
+                                                    className={styles.engineChipRemove}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveEngine(engine.id);
+                                                    }}
+                                                >
+                                                    ×
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    className={`${styles.engineChip} ${styles.engineChipAdd}`}
+                                    onClick={() => setShowEngineForm((show) => !show)}
+                                >
+                                    +
+                                </button>
                             </div>
+                            {showEngineForm && (
+                                <div className={styles.engineForm}>
+                                    <input
+                                        className={styles.engineInput}
+                                        placeholder={t.settings.engineName}
+                                        value={newEngineName}
+                                        onChange={(e) => setNewEngineName(e.target.value)}
+                                    />
+                                    <input
+                                        className={styles.engineInput}
+                                        placeholder={t.settings.engineUrl}
+                                        value={newEngineUrl}
+                                        onChange={(e) => setNewEngineUrl(e.target.value)}
+                                    />
+                                    <div className={styles.engineFormActions}>
+                                        <button className={styles.layoutToggleOption} onClick={handleAddEngine}>
+                                            {t.settings.add}
+                                        </button>
+                                        <button className={styles.layoutToggleOption} onClick={() => setShowEngineForm(false)}>
+                                            {t.textInput.cancel}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         {/* 批量刷新图标 */}

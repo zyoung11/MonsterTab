@@ -42,6 +42,7 @@ interface AppConfig {
   showDock: boolean;
   spaceSwitchSpeed: 'fast' | 'normal' | 'slow';
   enabledSearchEngines: string[];
+  customSearchEngines: SearchEngine[];
 }
 
 const DEFAULT_CONFIG: AppConfig = {
@@ -56,6 +57,7 @@ const DEFAULT_CONFIG: AppConfig = {
   showDock: true,
   spaceSwitchSpeed: 'fast',
   enabledSearchEngines: [],
+  customSearchEngines: [],
 };
 
 // ============================================================================
@@ -145,9 +147,10 @@ export const storage = {
 
   saveConfig(config: AppConfig): void {
     try {
-      const json = JSON.stringify(config);
+      const merged = { ...DEFAULT_CONFIG, ...config };
+      const json = JSON.stringify(merged);
       localStorage.setItem(STORAGE_KEYS.CONFIG, json);
-      memoryCache.config = { data: config, raw: json };
+      memoryCache.config = { data: merged, raw: json };
     } catch (error) {
       console.error('Failed to save config:', error);
     }
@@ -249,6 +252,14 @@ export const storage = {
 
   saveEnabledSearchEngines(enabledSearchEngines: string[]): void {
     this.updateConfig({ enabledSearchEngines });
+  },
+
+  getCustomSearchEngines(): SearchEngine[] {
+    return this.getConfig().customSearchEngines;
+  },
+
+  saveCustomSearchEngines(customSearchEngines: SearchEngine[]): void {
+    this.updateConfig({ customSearchEngines });
   },
 
   // ==========================================================================

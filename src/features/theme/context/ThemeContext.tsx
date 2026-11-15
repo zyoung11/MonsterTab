@@ -6,6 +6,7 @@ import { db } from '@/shared/utils/db';
 import { GRADIENT_PRESETS } from '@/features/theme/constants/gradients';
 import { generateTextureDataUrl, getTextureSize, type TextureId } from '@/features/theme/constants/textures';
 import { SPACE_SWITCH_SPEED_FACTOR } from '@/shared/constants/layout';
+import type { SearchEngine } from '@/shared/types';
 import { getTextureColorFromBackground } from '@/features/theme/utils/colorUtils';
 
 export type Theme = 'default' | 'light' | 'dark';
@@ -42,6 +43,7 @@ interface ThemeDataContextType {
     showDock: boolean;
     spaceSwitchSpeed: SpaceSwitchSpeed;
     enabledSearchEngines: string[];
+    customSearchEngines: SearchEngine[];
 }
 
 const ThemeDataContext = createContext<ThemeDataContextType | undefined>(undefined);
@@ -64,6 +66,8 @@ interface ThemeActionsContextType {
     setShowDock: (show: boolean) => void;
     setSpaceSwitchSpeed: (speed: SpaceSwitchSpeed) => void;
     setEnabledSearchEngines: (ids: string[]) => void;
+    addCustomSearchEngine: (engine: SearchEngine) => void;
+    removeCustomSearchEngine: (id: string) => void;
 }
 
 const ThemeActionsContext = createContext<ThemeActionsContextType | undefined>(undefined);
@@ -226,6 +230,10 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return storage.getEnabledSearchEngines();
     });
 
+    const [customSearchEngines, setCustomSearchEnginesState] = useState<SearchEngine[]>(() => {
+        return storage.getCustomSearchEngines();
+    });
+
     // 计算主题：如果启用了 followSystem，则使用系统主题
     const theme = followSystem ? systemTheme : manualTheme;
     const isDefaultTheme = manualTheme === 'default' && !followSystem;
@@ -358,6 +366,22 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const setEnabledSearchEngines = useCallback((ids: string[]) => {
         setEnabledSearchEnginesState(ids);
         storage.saveEnabledSearchEngines(ids);
+    }, []);
+
+    const addCustomSearchEngine = useCallback((engine: SearchEngine) => {
+        setCustomSearchEnginesState((prev) => {
+            const next = [...prev, engine];
+            storage.saveCustomSearchEngines(next);
+            return next;
+        });
+    }, []);
+
+    const removeCustomSearchEngine = useCallback((id: string) => {
+        setCustomSearchEnginesState((prev) => {
+            const next = prev.filter((engine) => engine.id !== id);
+            storage.saveCustomSearchEngines(next);
+            return next;
+        });
     }, []);
 
     // 将主题应用到文档
@@ -513,7 +537,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         showDock,
         spaceSwitchSpeed,
         enabledSearchEngines,
-    }), [theme, followSystem, wallpaper, wallpaperType, gradientId, solidId, texture, wallpaperId, backgroundValue, backgroundBaseValue, backgroundTextureValue, backgroundTextureTileSize, backgroundBlendMode, dockPosition, iconSize, openInNewTab, showDock, spaceSwitchSpeed, enabledSearchEngines]);
+        customSearchEngines,
+    }), [theme, followSystem, wallpaper, wallpaperType, gradientId, solidId, texture, wallpaperId, backgroundValue, backgroundBaseValue, backgroundTextureValue, backgroundTextureTileSize, backgroundBlendMode, dockPosition, iconSize, openInNewTab, showDock, spaceSwitchSpeed, enabledSearchEngines, customSearchEngines]);
 
     const actionsValue: ThemeActionsContextType = useMemo(() => ({
         setTheme,
@@ -530,7 +555,9 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setShowDock,
         setSpaceSwitchSpeed,
         setEnabledSearchEngines,
-    }), [setTheme, setFollowSystem, setWallpaper, uploadWallpaper, setGradientId, setSolidId, setTexture, setWallpaperId, setDockPosition, setIconSize, setOpenInNewTab, setShowDock, setSpaceSwitchSpeed, setEnabledSearchEngines]);
+        addCustomSearchEngine,
+        removeCustomSearchEngine,
+    }), [setTheme, setFollowSystem, setWallpaper, uploadWallpaper, setGradientId, setSolidId, setTexture, setWallpaperId, setDockPosition, setIconSize, setOpenInNewTab, setShowDock, setSpaceSwitchSpeed, setEnabledSearchEngines, addCustomSearchEngine, removeCustomSearchEngine]);
 
     return (
         <ThemeDataContext.Provider value={dataValue}>
